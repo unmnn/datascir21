@@ -3,10 +3,8 @@ library(purrr)
 
 dir("slides", pattern = "html$") %>%
   setdiff(c("01-R-Fundamentals.html", "04-rmd-intro.html")) %>%
-  # c("05-functions-iteration.html", "06-linear-models.html") %>%
-  # "02-ggplot2-intro.html" %>%
   # Render html files from .Rmd
-  walk(~ paste0("slides/", xfun::sans_ext(.x), ".html"), "xaringan::moon_reader") %>%
+  # walk(~ paste0("slides/", xfun::sans_ext(.x), ".rmd"), "xaringan::moon_reader") %>%
   # Convert html files to pdf
   walk(~ xaringanBuilder::build_pdf(
     paste0("slides/", xfun::sans_ext(.x), ".html"), 
