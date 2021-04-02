@@ -1,0 +1,2195 @@
+---
+title: "The R language: Vectors, Classes, Functions, Iteration"
+subtitle: "Data Science with R &#183; Summer 2021"
+author: "Uli Niemann"
+session: "05"
+institute: "Knowledge Management & Discovery Lab"
+# date: "2016/12/12 (updated: `r Sys.Date()`)"
+output:
+  xaringan::moon_reader:
+    css: ["default", "assets/css/my-theme.css", "assets/css/my-fonts.css"]
+    seal: false # custom title slide
+    lib_dir: libs
+    nature:
+      # highlightStyle: solarized-light
+      highlightStyle: github
+      highlightLines: true
+      # highlightLanguage: ["r", "css", "yaml"]
+      countIncrementalSlides: true
+      ratio: "16:9"
+      beforeInit: "https://platform.twitter.com/widgets.js"
+params:
+  url: "https://brain.cs.uni-magdeburg.de/kmd/DataSciR/"
+---
+
+```{r setup, include=FALSE}
+source("global-slide-settings.R", local = knitr::knit_global(), encoding = "UTF-8")
+
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+
+# directory of generated figures
+knitr::opts_chunk$set(fig.path = "figures/_gen/05/")
+# directory of included figures
+fig_path <- "figures/"
+
+xaringanExtra::use_panelset()
+xaringanExtra::use_tile_view()
+```
+
+```{r title-slide, child="title-slide.Rmd"}
+```
+
+```{r covid-preprocess, eval=FALSE, echo=FALSE}
+# https://npgeo-corona-npgeo-de.hub.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0
+covid_raw <- read_csv(here::here("data/RKI_COVID19_RAW.csv")) %>%
+  select(ObjectId, Refdatum, Bundesland, Landkreis, Altersgruppe, Geschlecht, AnzahlFall, AnzahlTodesfall, AnzahlGenesen, Datenstand) %>%
+  set_names(c("row_id", "ref_date", "federal_state", "district", "age_group", "sex", "cases", "deaths", "convalescents", "data_date"))
+covid <- covid_raw %>%  
+  mutate(ref_date = lubridate::as_date(ref_date)) %>%
+  mutate(data_date = lubridate::dmy(str_replace(data_date, "(.{10}).*", "\\1"))) %>%
+  mutate(federal_state = factor(
+    federal_state,
+    levels = sort(unique(federal_state)),
+    labels =  c("Baden-Wuerttemberg", "Bavaria", "Berlin", "Brandenburg", "Bremen", 
+                "Hamburg", "Hesse", "Mecklenburg-Western Pomerania", "Lower Saxony", 
+                "North Rhine-Westphalia", "Rhineland-Palatinate", "Saarland", "Saxony",
+                "Saxony-Anhalt", "Schleswig-Holstein", "Thuringia"
+    ))) %>%
+  mutate(age_group = if_else(age_group == "unbekannt", "unknown", age_group)) %>%
+  mutate(sex = factor(sex, levels = c("W", "M", "unbekannt"), labels = c("f", "m", "unknown"))) %>%
+  mutate(across(c(row_id, cases, deaths, convalescents), as.integer))
+write_rds(covid, here::here("data/RKI_COVID19.rds"), compress = "gz")
+```
+
+---
+
+## Outline
+
+[**Vectors**](#vectors):
+
+- [Basic vector operations](#basic-vector-operations)
+- [Vector types](#vector-types)
+- [Vector properties](#vector-properties)
+- [Vector coercion](#vector-coercion)
+- [Creating vectors](#creating-vectors)
+- [Special values](#special-values)
+- [Vector recycling](#vector-recycling)
+- [Lists](#lists)
+
+[**Classes**](#classes):
+
+- [Data frames](#data-frames)
+- [Factors](#factors)
+- [Dates](#dates)
+
+[**Functions**](#functions)
+
+[**Iteration**](#iteration)
+
+---
+
+name: vectors
+class: center, middle, inverse
+
+# Vectors
+
+---
+
+name: basic-vector-operations
+
+## Basic vector operations
+
+Suppose we have the following vector: 
+
+```{r vector}
+(v <- c(5, 2, 9, 1, 6, 2, 4, 5, 5, 1))
+```
+
+Sort the elements of a vector with `sort()`:
+
+```{r sort}
+sort(v) #  order() returns the order of the values as vector indices
+```
+
+--
+
+Get the unique values of a vector by the order in which they appear with `unique()`:
+
+```{r unique}
+unique(v)
+```
+
+--
+
+Create a contingency table for a vector with `table()`:
+
+```{r table}
+table(v)
+```
+
+---
+
+name: vector-types
+
+## Vectors types
+
+.pull-left60[
+
+- In `R`, there are two vector types: **atomic vectors** and **lists**.
+- An atomic vector is a sequence of elements of the **same data type**.
+- Lists are **recursive vectors**, i.e., lists can contain other lists.
+
+The most important atomic data types are:
+
+- `logical`: `FALSE` or `TRUE`
+- `integer`: whole number, e.g. `5L`
+- `double`: floating-point number, e.g. `3.4`
+- `character`: character string, e.g. `"DataSciR"`
+]
+
+
+.pull-right40[
+
+```{r data-structures-overview, echo=FALSE, out.width="450px"}
+knitr::include_graphics(file.path(fig_path, "05-data-structures-overview.png"))
+```
+
+]
+
+.footnote[Figure source: Hadley Wickham and Garrett Grolemund. _[R for Data Science](https://r4ds.had.co.nz/vectors.html/)_. O'Reilly, 2017.]
+
+---
+
+name: vector-properties
+
+## Vector properties
+
+Vectors have two major properties: **type** and **length**.
+
+```{r type-length}
+x <- 1:5
+typeof(x)
+length(x)
+```
+
+---
+
+## Naming vector elements
+
+Naming and renaming of vector elements:
+
+```{r names}
+names(x) <- letters[1:5] # same as x <- c(a = 1, b = 2, c = 3, d = 4, e = 5)
+x
+typeof(x)
+```
+
+---
+
+## Accessing vector elements
+
+.pull-left[
+
+```{r index-by-position}
+x[2] # the second element
+```
+
+
+```{r index-by-name}
+x["b"] # the element named "b"
+```
+
+]
+
+--
+
+.pull-right[
+
+```{r index-negative-selection}
+x[-2] # all elements but the second
+```
+
+
+```{r index-multiple-negative-selection}
+x[-(3:5)] # all elements but the third to fifth
+```
+
+]
+
+---
+
+## Vector coercion
+
+.content-box-blue[
+
+An atomic vector must be homogeneous with respect to the type of its elements.
+If you create a vector with elements of mixed types, `R` tries to convert the elements into the **most flexible** type of its elements.
+This process is called **vector coercion**.
+As a result, creating a vector with elements of mixed types does not yield an error.
+
+]
+
+--
+
+.pull-left[
+
+**Order of types**, from _least flexible_ to _most flexible_:
+
+1. `logical` (`FALSE`, `TRUE`)
+2. `integer` (`1L`, `2L`)
+3. `double` (`0.51`, `3.19`)
+4. `character` (`"abc"`, `"xz"`)
+
+]
+
+--
+
+.pull-right[
+
+```{r coercion-1}
+x <- c(1, 4, 1, 3, 2)
+typeof(x) # why not integer?
+```
+{{content}}
+
+]
+
+--
+
+```{r coercion-2}
+x <- c(1, 4, 1, 3, 2, "4")
+x
+typeof(x)
+```
+
+<!-- .content-box-green[ -->
+
+<!-- In contrast to atomic vectors, lists can store elements of different types. -->
+
+<!-- ] -->
+
+---
+
+## Implicit coercion
+
+Functions that require a specific vector type use implicit coercion:
+
+```{r coercion-3}
+# Create a random boolean vector with 10 elements. 
+lgl_vec <- sample(c(FALSE, TRUE), size = 10, replace = TRUE)
+lgl_vec
+sum(lgl_vec) # sum() requires numeric type ---> FALSE -> 0, TRUE -> 1
+mean(lgl_vec) # mean() requires numeric type --->  FALSE -> 0, TRUE -> 1
+```
+
+???
+
+-  Draw a random sample with replacement from c(FALSE, TRUE)
+
+--
+
+.pull-left60[
+
+```{r paste-1}
+paste("this", "is", "a", "test") # concatenate strings
+paste(c("this", "is", "a", "test"), collapse = " ")
+```
+
+]
+
+.pull-right40[
+
+```{r paste-2, eval=FALSE}
+paste(lgl_vec, collapse = " ")
+```
+
+&#x1F914; _What is the result?_
+{{content}}
+
+]
+
+--
+
+```{r paste-3, ref.label="paste-2", echo = FALSE, R.options=list(width=40)}
+```
+
+???
+
+- collapse: character string to separate the results
+
+---
+
+## Explicit coercion
+
+```{r coercion-4}
+x <- c(1, 4, 1, 3, 2, "4.0")
+x
+```
+
+Convert a `character` vector into a `double` vector (explicit coercion):
+
+```{r coercion-5}
+as.numeric(x)
+```
+
+--
+
+.content-box-green[
+
+Explicit coercion can also be realized with
+`as.logical()`, `as.integer()`, `as.double()` and `as.character()`.
+
+]
+
+---
+
+name: creating-vectors
+
+## Creating vectors
+
+**Vectors** can be created with `c()`, `:`, `seq()` or `rep()`.
+
+.pull-left[
+
+```{r c-function}
+# "C"ombine elements to a vector
+c(1,2,3)
+```
+
+```{r colon-function}
+# integer sequence
+1:3
+```
+
+```{r seq}
+# sequence with an increment of 0.5
+seq(1, 3, by = 0.5)
+```
+
+]
+
+.pull-right[
+
+```{r rep-times}
+# repeat the whole vector
+rep(1:3, times = 2)
+```
+
+```{r rep-each}
+# repeat each element of the vector
+rep(1:3, each = 2)
+```
+
+]
+
+.footnote[
+.content-box-blue[
+
+There is no separate data structure for **scalars** in `R`.
+Scalars are simply vectors of length 1.
+
+]
+]
+
+---
+
+name: special-values
+
+## Special values
+
+**Missing values** or **unknown values** are represented as `NA` (_not applicable_).
+
+These special values can be identified with `is.na()`.
+
+```{r is-na, warning = FALSE}
+is.na(c(1, NA, 5))
+```
+
+--
+
+Further special values besides `NA` include:
+
+- `NaN` (not a number): e.g. `sqrt(-2)` &rarr; `is.nan()`
+- `Inf`: e.g. `1/0` &rarr; `is.infinite()`
+- `NULL`: absence of a whole vector &rarr; `is.null()`
+
+---
+
+name: vector-recycling
+
+## Vector recycling
+
+When combining two vectors, `R` tries to match their lengths.
+
+**Vector recycling** involves replicating elements of the shorter of two vectors so that the two vectors' lengths are equal.
+
+.pull-left[
+
+```{r}
+1:6 + 1:3
+```
+{{content}}
+]
+
+--
+
+```{r, eval=FALSE}
+1:5 + 1:3
+```
+
+&#x1F914; _What is the result?_
+
+--
+
+.pull-right[
+
+```{r, warning=TRUE, R.options=list(width=45)}
+1:5 + 1:3
+```
+{{content}}
+]
+
+--
+
+Equivalent with:
+
+```{r}
+1:5 + c(1:3, 1, 2)
+```
+
+---
+
+name: lists
+
+## Lists
+
+A **list** is a **recursive vector**, because it can contain other vectors.
+<!-- They can be used to represent hierarchical or tree-like structures. -->
+
+.pull-left[
+
+Create a list with `list()`:
+
+```{r list}
+x <- list(1:5)
+x
+y <- list(1, 2, 3, 4, 5)
+y
+```
+
+]
+
+--
+
+.pull-right[
+
+Inspect the **str**ucture of a list with `str()`:
+
+```{r str}
+str(y)
+```
+
+]
+
+
+---
+
+## Lists
+
+A list is a vector that can contain **elements of different types**:
+
+```{r mixed-list}
+x <- list(TRUE, 1L, 1.23, "u")
+str(x)
+```
+
+--
+
+Lists can contain other lists:
+
+```{r recursive-list}
+x <- list(list(TRUE, 1L), list(1.23, "u"))
+str(x)
+```
+
+---
+
+## List subsetting
+
+There are 3 ways to access list elements:
+
+- `[]` extracts a **sublist**. The results is **always** a list,
+
+--
+
+- `[[]]` extracts a **single element** and removes one level of hierarchy,
+
+--
+
+- `$` extracts a **named element**.
+
+--
+
+.pull-left[
+
+```{r indexing-lists}
+x <- list(
+  list(TRUE, 1L),
+  list(1.23, "u")
+)
+str(x)
+```
+
+]
+
+--
+
+.pull-right[
+
+```{r indexing-lists-1}
+str(x[1])
+str(x[[1]])
+str(x[[1]][[1]])
+```
+
+
+]
+
+---
+
+## List subsetting
+
+Compare list subsetting to this unusual pepper shaker:
+
+```{r list-subsetting, echo=FALSE, out.width="100%"}
+knitr::include_graphics(file.path(fig_path, "05-list_subsetting.png"))
+```
+
+.footnote[
+
+Figure adapted from: Hadley Wickham and Garrett Grolemund. _["R for Data Science"](http://r4ds.had.co.nz/)_. O'Reilly, 2017.
+
+]
+
+???
+
+Analogy:
+
+- pepper corns represent a vector
+- sachet represents a list
+- shaker represents a list
+
+shaker contains multiple sachets, each of which contain pepper corns
+
+---
+
+name: classes
+class: center, middle, inverse
+
+# Classes
+
+---
+
+## Classes
+
+- Classes are used to create more complex data structures
+- The class attribute of a vector determines its behavior
+- The class attribute mostly refers to the [S3 class](https://adv-r.hadley.nz/s3.html)
+  - Examples: data frames, factors, and dates
+
+???
+
+- R is more a functional programming language than an object-oriented one
+- however, we come across the S3 class in Base R a lot: data frames, factors, dates, linear models, etc. 
+- S3 class is quite different from OOP you may be familiar from other programming classes 
+
+---
+
+name: data-frames
+
+## Data frames
+
+.content-box-blue[
+
+Data frames are built on top of regular lists. Thus, element indexing works
+similar. An important difference between data frames and lists is that
+a data frame requires its vectors (variables) to have the same length while
+a list does not.
+
+]
+
+Example: the `mtcars` dataset
+
+.font80[
+
+.content-box-gray[
+
+_The data was extracted from the 1974 Motor Trend US magazine, and comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973–74 models)._ &mdash; `?mtcars`
+
+]
+
+]
+
+```{r mtcars, eval=FALSE}
+mtcars
+```
+
+```{r head, echo=FALSE}
+head(mtcars)
+```
+
+.content-box-blue[
+
+`class(mtcars)` &rarr; `r class(mtcars)` &nbsp;&nbsp;&nbsp;
+`typeof(mtcars)` &rarr; `r typeof(mtcars)`
+
+]
+
+???
+
+- classes can be hierarchical: tibble is built on top of a data frame
+
+
+---
+
+## Extracting data frame elements
+
+<!-- ## Extracting a single element -->
+
+You can extract a single element (such as a variable of a data frame)
+with `[[]]`, `$`, and `dplyr::pull()`:
+
+```{r index-df-single-col, eval = TRUE}
+mtcars[[1]] # [[]] using the column index
+mtcars[["mpg"]] # [[]] using a character string
+mtcars$mpg # $ (without quotation marks!)
+mtcars %>% pull(mpg)# pull is a dplyr function
+```
+
+---
+
+<!-- ## Extracting multiple elements -->
+
+To access one or more elements, you can use `[]`:
+
+```{r index-df-multiple-cols}
+mtcars[c("mpg", "disp")]
+```
+
+---
+
+.pull-left[
+
+You can filter rows and subset variables at the same time:
+
+```{r index-df-rows-cols}
+mtcars[1:3, c("mpg", "disp")]
+```
+
+]
+
+.pull-right[
+
+Alternatively, if the rows are named:
+
+```{r index-named}
+mtcars[c("Mazda RX4", "Mazda RX4 Wag",
+         "Datsun 710"),
+       c("mpg", "disp")]
+```
+
+]
+
+---
+
+name: factors
+
+## Factors
+
+- A **factor** is a vector class built on top of an **integer** vector.
+- A factor vector contains predefined categorical values, the so-called **levels**.
+
+```{r factor}
+(gender <- factor(c("m", "f", "f", "m", "m"), levels = c("f", "m", "d")))
+class(gender)
+typeof(gender)
+levels(gender)
+```
+
+---
+
+## Factors
+
+A values that is not an element of the set of levels must not be used:
+
+```{r factor-2, warning = T}
+gender[2] <- "male" # only "f", "m", and "d" allowed
+gender
+```
+
+---
+
+## Factors
+
+Factors are also useful if all possible values are known in advance but some of them are not observed initially.
+
+```{r factor-3}
+table(gender)
+```
+
+Compare with:
+
+```{r factor-4}
+x <- as.character(gender)
+table(x)
+```
+
+---
+
+## The `forcats` package
+
+The core Tidyverse package `forcats` provides functions to modify categorical variables. 
+
+.pull-left70[
+
+```{r forcats-functions, echo = FALSE}
+tribble(
+  ~Function, ~Description,
+  "fct_reorder()", "Change the levels order by the values of another variable",
+  "fct_inorder()", "Change the levels order by the order in which they first appear",
+  "fct_rev()", "Reverse the levels order",
+  "fct_relevel()", "Change the order of one or more levels manually",
+  "fct_reorder2()", "Change the levels order by the values of a second variable. Which value of the second variable is considered is dependent on the highest value of a third variable.",
+  "fct_collapse()", "Merge two or more levels",
+  "fct_recode()", "Rename levels",
+  "fct_lump()", "Merge levels based on their occurence",
+  "...", ""
+) %>%
+  kbl()
+```
+
+]
+
+.pull-right30[
+
+```{r forcats-logo, out.width="100%", echo = FALSE}
+knitr::include_graphics(file.path(fig_path, "05-forcats.png"))
+```
+
+]
+
+---
+
+## The data: descriptors of socio-economic status in the US 
+
+```{r prep-data-silent, eval = FALSE, echo = FALSE}
+income <- tidytuesdayR::tt_load('2021-02-09')$income_aggregate
+write_rds(income, here::here("data/income.rds"))
+tuesdata <- tidytuesdayR::tt_load('2021-02-23')
+earn <- tuesdata$earn
+employed <- tuesdata$employed
+write_rds(earn, here::here("data/earn.rds"))
+write_rds(employed, here::here("data/employed.rds"))
+```
+
+.panelset[
+
+.panel[.panel-name[Wealth and income in the USA over time]
+
+```{r prep-data-income}
+income <- read_rds(here::here("data/income.rds"))
+glimpse(income)
+```
+
+.font80[
+
+.content-box-gray[
+
+_"The US Census provides Historical Income Tables, of which we have joined several to compare wealth and income over time by race."_
+
+Source: [TidyTuesday](https://github.com/rfordatascience/tidytuesday/tree/master/data/2021/2021-02-09#wealth-and-income-over-time)
+
+]
+
+]
+
+
+]
+.panel[.panel-name[Employed Status]
+
+Employed persons by industry, sex, race, and occupation in the US between 2015 and 2020
+
+```{r prep-data-employed}
+employed <- read_rds(here::here("data/employed.rds"))
+glimpse(employed)
+```
+
+.font80[
+.content-box-gray[
+
+Source: [TidyTuesday](https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-02-23/readme.md)
+
+]
+
+]
+
+]
+
+]
+
+
+???
+
+```{r prep-data-earn, eval=FALSE, echo=FALSE}
+earn <- read_rds(here::here("data/earn.rds"))
+glimpse(earn)
+```
+
+.panelset[
+
+.panel[.panel-name[]]
+.panel[.panel-name[]]
+.panel[.panel-name[]]
+
+]
+
+---
+
+## `fct_reorder()`
+
+.panelset[
+
+.panel[.panel-name[Default: alphabetic order]
+
+```{r fct_reorder-0, fig.width=30/2.54, fig.height=15/2.54, echo=FALSE}
+employed %>%
+  drop_na() %>%
+  filter(year == 2020, race_gender == "TOTAL") %>%
+  distinct(industry, industry_total) %>%
+  ggplot(aes(x = industry_total / 1000000, y = industry)) +
+  geom_col() +
+  labs(x = "Employed persons (x 1,000,000)", y = NULL, 
+    title = "Employed persons per industry in the USA in 2020") 
+```
+
+]
+.panel[.panel-name[Industries ordered by number of employed persons]
+
+```{r fct-reorder-1, fig.width=30/2.54, fig.height=15/2.54, echo = FALSE}
+employed %>%
+  drop_na() %>%
+  filter(year == 2020, race_gender == "TOTAL") %>%
+  distinct(industry, industry_total) %>%
+  mutate(industry = fct_reorder(industry, industry_total)) %>% #<<
+  ggplot(aes(x = industry_total / 1000000, y = industry)) +
+  geom_col() +
+  labs(
+    x = "Employed persons (x 1,000,000)", y = NULL, 
+    title = "Employed persons per industry in the USA in 2020"
+    ) 
+```
+
+]
+
+.panel[.panel-name[Code]
+
+Syntax: `fct_reorder(<factor_column>, <numeric_column_to_order_by>)`
+
+```{r fct-reorder-1-only-code, ref.label = "fct-reorder-1", eval = FALSE}
+```
+
+]
+
+]
+
+---
+
+## `fct_inorder()`
+
+.panelset[
+
+.panel[.panel-name[Start]
+
+```{r fct-inorder-0, fig.width=30/2.54, fig.height=12/2.54, echo = FALSE}
+employed %>%
+  filter(year == 2020, industry == "Education and health services") %>%
+  drop_na() %>% 
+  distinct(industry, race_gender, industry_total) %>%
+  ggplot(aes(x = industry_total / 1000000, y = race_gender)) +
+  geom_col() +
+  labs(
+    x = "Employed persons (x 1,000,000)", y = NULL, 
+    title = "Employed persons per race/gender in education and health\nservices in the USA in 2020"
+    )
+```
+
+```{r fct-inorder-0-unique}
+employed$race_gender %>% unique() # order in the data
+```
+
+]
+
+.panel[.panel-name[`fct_inorder()`: order by first appearance]
+
+```{r fct-inorder-1, fig.width=30/2.54, fig.height=15/2.54, echo = FALSE}
+employed %>%
+  mutate(race_gender = fct_inorder(race_gender)) %>% #<<
+  filter(year == 2020, industry == "Education and health services") %>%
+  drop_na() %>% 
+  distinct(industry, race_gender, industry_total) %>%
+  ggplot(aes(x = industry_total / 1000000, y = race_gender)) +
+  geom_col() +
+  labs(
+    x = "Employed persons (x 1,000,000)", y = NULL, 
+    title = "Employed persons per race/gender in education and health\nservices in the USA in 2020"
+    )
+```
+
+]
+
+.panel[.panel-name[`fct_infreq() + fct_rev()`]
+
+```{r fct-inorder-2, fig.width=30/2.54, fig.height=15/2.54, echo = FALSE}
+employed %>%
+  mutate(race_gender = fct_inorder(race_gender)) %>% #<<
+  filter(year == 2020, industry == "Education and health services") %>%
+  drop_na() %>% 
+  distinct(industry, race_gender, industry_total) %>%
+  ggplot(aes(x = industry_total / 1000000, y = fct_rev(race_gender))) + #<<
+  geom_col() +
+  labs(
+    x = "Employed persons (x 1,000,000)", y = NULL, 
+    title = "Employed persons per race/gender in education and health\nservices in the USA in 2020"
+    )
+```
+
+]
+
+.panel[.panel-name[Code]
+
+Syntax: `fct_inorder(<factor_column>)`
+
+```{r fct-inorder-2-code, ref.label="fct-inorder-2", eval = FALSE}
+```
+
+]
+
+]
+
+---
+
+## `fct_relevel()`
+
+.panelset[
+
+.panel[.panel-name[Category names have an inherent order]
+
+```{r fct-relevel-0, echo=FALSE}
+income %>%
+  filter(year == 2019, race == "All Races", income_quintile != "Top 5%") %>%
+  ggplot(aes(x = race, y = income_share, fill = income_quintile)) +
+  geom_col() +
+  scale_fill_brewer(palette = "PiYG", direction = -1) +
+  labs(x = NULL, y = "Income share (%)", fill = "Income\nquintile",
+       title = "Income share by income quantile\nin the USA in 2019")
+```
+
+]
+.panel[.panel-name[`fct_relevel()`]
+
+```{r fct-relevel-1, echo = FALSE}
+income %>%
+  filter(year == 2019, race == "All Races", income_quintile != "Top 5%") %>%
+  mutate(income_quintile = fct_relevel(income_quintile, #<<
+    "Highest", "Second", "Third", "Fourth", "Lowest" #<<
+  )) %>% 
+  ggplot(aes(x = race, y = income_share, fill = income_quintile)) +
+  geom_col() +
+  scale_fill_brewer(palette = "PiYG", direction = -1) +
+  labs(x = NULL, y = "Income share (%)", fill = "Income\nquintile",
+       title = "Income share by income quantile\nin the USA in 2019")
+```
+
+]
+
+.panel[.panel-name[Code]
+
+Syntax: `fct_relevel(<factor_column>, <level_to_bring_to_first_pos>, <level_to_bring_to_second_pos>, ...)`
+
+
+```{r fct-relevel-1-code, ref.label="fct-relevel-1", eval = FALSE}
+```
+
+
+]
+
+]
+
+---
+
+## `fct_reorder2()`
+
+.panelset[
+
+.panel[.panel-name[Hard to read]
+
+```{r fct-reorder2-0, fig.width=30/2.54, fig.height=15/2.54, echo=FALSE}
+income %>%
+  filter(income_quintile == "Top 5%", year <= 1986) %>%
+  filter(race %in% c("All Races", "Black Alone", "Hispanic", "White Alone")) %>%
+  ggplot(aes(x = year, y = income_share, color = race)) +
+  geom_line(size = 0.7) +
+  scale_color_brewer(palette = "Set1") +
+  labs(
+    x = "Year", y = "Income share (%)", color = "Race",
+    title = "Income share of the top 5% incomes by race in the USA over time"
+    )
+```
+
+.font80[Goal: Order `race` by `income_share` in 1986 (last year)]
+
+
+]
+.panel[.panel-name[`fct_reorder2()`]
+
+```{r fct-reorder2-1, fig.width=30/2.54, fig.height=15/2.54, echo = FALSE}
+income %>%
+  filter(income_quintile == "Top 5%", year <= 1986) %>%
+  filter(race %in% c("All Races", "Black Alone", "Hispanic", "White Alone")) %>%
+  mutate(race = fct_reorder2(race, year, income_share)) %>% #<<
+  ggplot(aes(x = year, y = income_share, color = race)) +
+  geom_line(size = 0.7) +
+  scale_color_brewer(palette = "Set1") +
+  labs(
+    x = "Year", y = "Income share (%)", color = "Race",
+    title = "Income share of the top 5% incomes by race in the USA over time"
+    )
+```
+
+]
+
+.panel[.panel-name[Code]
+
+Syntax: `fct_reorder2(<factor_column>, <numeric_column>, <numeric_column>)`
+
+```{r fct-reorder2-1-code, ref.label="fct-reorder2-1", eval = FALSE}
+```
+
+]
+
+]
+
+---
+
+## `fct_collapse()`
+
+.panelset[
+
+.panel[.panel-name[We want to display "Highest" vs. others combined]
+
+```{r fct-collapse-0, echo=FALSE}
+income %>%
+  filter(year == 2019, race == "All Races", income_quintile != "Top 5%") %>%
+  ggplot(aes(x = race, y = income_share, fill = income_quintile)) +
+  geom_col()
+```
+
+]
+.panel[.panel-name[`fct_collapse()`]
+
+```{r fct-collapse-1, echo = FALSE}
+income %>%
+  filter(year == 2019, race == "All Races", income_quintile != "Top 5%") %>%
+  mutate(income_category = fct_collapse( #<<
+    income_quintile, #<<
+    "Other" = c("Second", "Third", "Fourth", "Lowest") #<<
+  )) %>%
+  ggplot(aes(x = race, y = income_share, fill = income_category)) +
+  geom_col() +
+  scale_fill_manual(values = c("gray70", "green4"))
+```
+
+]
+
+.panel[.panel-name[`fct_collapse()` + `fct_rev()`]
+
+```{r fct-collapse-2, echo=FALSE}
+income %>%
+  filter(year == 2019, race == "All Races", income_quintile != "Top 5%") %>%
+  mutate(income_category = fct_collapse( #<<
+    income_quintile, #<<
+    "Other" = c("Second", "Third", "Fourth", "Lowest") #<<
+  )) %>%
+  ggplot(aes(x = race, y = income_share, fill = fct_rev(income_category))) + #<<
+  geom_col() +
+  scale_fill_manual(values = c("gray70", "green4"))
+```
+
+]
+
+.panel[.panel-name[Code]
+
+Syntax: `fct_collapse(<factor_column>, <new_level>, c(<old_level1>, <old_level2>, ...))`
+
+```{r fct-collapse-2-code, ref.label="fct-collapse-2", eval = FALSE}
+```
+
+]
+
+]
+
+---
+
+name: dates
+
+## Dates and times
+
+
+.pull-left70[
+
+The Tidyverse package `lubridate` provides functions to work with dates and times.
+Since `lubridate` is not a core Tidyverse packages, we have to load it separately. 
+
+.font90[
+
+```{r today, message = FALSE}
+library(lubridate)
+today() # date
+today() %>% class()
+```
+
+```{r now, message = FALSE}
+now() # date-time
+now() %>% class()
+```
+
+```{r today-typeof}
+today() %>% typeof()
+```
+
+```{r now-typeof}
+now() %>% typeof()
+```
+
+]
+
+]
+
+.pull-right30[
+
+```{r lubridate-logo, out.width="100%", echo = FALSE}
+knitr::include_graphics(file.path(fig_path, "05-lubridate.png"))
+```
+
+]
+
+---
+
+## Creating dates from character strings
+
+```{r ymd}
+tibble(x = c("2021-01-31", "2021-02-05", "2021-03-31")) %>%
+  mutate(dte = ymd(x))
+```
+
+--
+
+```{r dmy}
+tibble(x = c("31.01.21", "05.02.21", "31.03.21")) %>%
+  mutate(dte = dmy(x))
+```
+
+--
+
+```{r mdy}
+tibble(x = c("January 31 21", "Feb 05 21", "Mar 31 21")) %>%
+  mutate(dte = mdy(x))
+```
+
+---
+
+## Extracting date/time components
+
+```{r year-month-day-hour}
+tibble(x = c("2021-01-31 11:59:59", "2021-02-05 02:11:20", "2021-03-31 00:00:00")) %>%
+  transmute(dte_tme = ymd_hms(x)) %>%
+  mutate(
+    year = year(dte_tme),
+    month = month(dte_tme),
+    day = day(dte_tme),
+    hour = hour(dte_tme),
+    minute = minute(dte_tme),
+    second = second(dte_tme),
+  )
+```
+
+---
+
+## Arithmetic operations on dates
+
+Differences between two dates/times are of class `difftime`:
+
+```{r date-subtraction}
+dft <- ymd(20210301) - ymd(20210201)
+dft
+as.double(dft, units = "weeks")
+class(dft)
+```
+
+--
+
+`lubridate` implements three classes to perform arithmetic operations on **time spans**, i.e. addition, subtraction, and division:
+
+- `Duration`: exact number of seconds 
+- `Period`: human units like weeks and months 
+- `Interval`: represent a starting and ending point 
+
+---
+
+## Durations
+
+```{r dur-1}
+ymd("2021-03-27") + ddays(1)
+```
+
+--
+
+```{r dur-2}
+ymd("2021-03-27") + dyears(1)
+```
+
+.content-box-yellow[
+
+Why `06:00:00`?
+
+]
+
+--
+
+```{r dur-3}
+dyears(1) / ddays(1)
+```
+
+---
+
+## Periods
+
+```{r per-1}
+ymd("2021-03-27") + years(1)
+```
+
+--
+
+```{r dur-vs-per}
+ymd("2021-02-01") + dmonths(1) # duration
+ymd("2021-02-01") + months(1) # period
+```
+
+--
+
+```{r dur-vs-per-2}
+dmonths(1) / ddays(1)
+months(1) / days(1)
+```
+
+.content-box-yellow[
+
+Why are `dmonths(1)` and `months(1)` seemingly equal?
+
+]
+
+???
+
+- seemingly no difference
+- periods depend on the context: February 2021 -> 28 days, March 2021 -> 31 days
+
+---
+
+## Intervals
+
+```{r int}
+first_of_march <- ymd("2021-02-01") + months(1)
+first_of_march
+(ymd("2021-02-01") %--% first_of_march) / dmonths(1)
+(ymd("2021-02-01") %--% first_of_march) / months(1)
+```
+
+---
+
+name: functions
+class: center, middle, inverse
+
+# Functions
+
+---
+
+## COVID-19 data for Germany
+
+.content-box-yellow[
+
+How did the proportion of different age groups to the number of infected persons in German states change over the period of the pandemic?
+
+]
+
+.panelset[
+
+.panel[.panel-name[COVID-19 data]
+
+```{r covid-data}
+covid <- read_rds(here::here("data/RKI_COVID19.rds"))
+glimpse(covid)
+```
+
+.font80[Source: [Robert Koch Institute](https://npgeo-corona-npgeo-de.hub.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0)]
+
+]
+.panel[.panel-name[Data description]
+
+.font90[
+
+```{r covid-data-description, echo=FALSE}
+tribble(
+  ~ Column, ~ Description,
+  "row_id", "Row number",
+  "ref_date", "Date of infection or, if this is not known, the date of notification.",
+  "federal_state", "Federal state (German: Bundesland)",
+  "district", "Administrative district (German: Landkreis)",
+  "age_group", "Age group",
+  "sex", "Sex",
+  "cases", "Number of active cases",
+  "deaths", "Number of new deaths",
+  "convalescents", "Number of new recovered",
+  "data_date", "Date of last update (German: Datenstand)"
+) %>%
+  kbl(format = "html") %>%
+  kable_styling(c("hover", "condensed")) 
+```
+
+]
+
+.font80[Source: [Dataset description (in German)](https://www.arcgis.com/home/item.html?id=dd4580c810204019a7b8eb3e0b329dd6)]
+
+]
+.panel[.panel-name[Plot]
+
+```{r covid-plot-1, fig.width= 30/2.54, fig.height=14/2.54, echo = FALSE}
+covid %>%
+  filter(federal_state == "Saxony-Anhalt") %>%
+  complete(ref_date, age_group, fill = list(cases = 0)) %>%
+  group_by(ref_date, age_group) %>%
+  summarize(n_cases = sum(cases)) %>% # average over districts and sexes
+  group_by(age_group) %>%
+  arrange(ref_date) %>%
+  mutate(rolling_mean = RcppRoll::roll_mean(n_cases, n = 14, fill = NA)) %>%
+  ungroup() %>% drop_na() %>%
+  ggplot(aes(x = ref_date, y = rolling_mean, fill = age_group)) +
+  geom_area(position = "fill") +
+  scale_fill_manual(values = c(RColorBrewer::brewer.pal(6, "Blues"), "gray30")) +
+  labs(
+    x = NULL, y = NULL, fill = "Age group",
+    title = "Active COVID-19 cases by age group in Saxony-Anhalt",
+    caption = paste0("Source: Robert Koch Institute (", format(covid$data_date[1], "%d.%m.%y"), ")")
+  ) +
+  coord_cartesian(expand = FALSE) +
+  scale_y_continuous(labels = scales::percent) +
+  theme(plot.title = element_text(size = rel(1.05)))
+```
+
+]
+.panel[.panel-name[Code]
+
+```{r covid-plot-1-code, ref.label = "covid-plot-1", eval = FALSE}
+```
+
+]
+
+]
+
+???
+
+- RKI = German federal government agency and research institute responsible for disease control and prevention
+- several waves with rapid spikes in the number of infections
+- elderly have a higher mortality rate
+- etc.
+
+Observations for Saxony-Anhalt:
+
+- differences between the states, but some observations are consistent
+- in the beginning, a very high percentage of 80+ patients 
+- percentage of A15-A34 increasing from March 2020
+- percentage of A80 relatively steady from May 2020 (maybe slightly decreasing), then increasing from November 2020
+- percentage of very young (>=14) steadily increasing
+
+---
+
+class: middle
+
+.font120[
+
+.content-box-green[
+
+We want to create this plot also for the other 15 states. 
+Is there an a better way than copy-and-pasting?
+]
+
+
+]
+
+???
+
+- we need to prepare this plot also for other states
+- we don't want to use facet_grid/facet_wrap because 16 subplots at once is too much, we want to show the plot for one state at a time
+- we _could_ change the name of the state by hand and rerun the code chunk
+- we _could_ copy-paste the code and change the name of the state
+
+---
+
+## Why functions?
+
+From [R4DS](https://r4ds.had.co.nz/functions.html):
+
+.content-box-gray[
+
+- A function with an expressive name makes your code easier to understand.
+- If you want to make changes to the code, you only need to update in one place instead of many.
+- You eliminate the chance of making inadvertently mistakes because of copy and paste.
+
+]
+
+In the long run, it is advisable to make your code available in functions (_within packages_) so that future you and others can use your code.
+
+???
+
+- rule of thumb: if you need parts of your code more than twice, you should make a function out of it 
+
+---
+
+## Writing functions
+
+.content-box-blue[
+
+**Function scaffolding:**
+
+.font110[
+
+```{r function-1}
+plot_covid_cases_by_age_groups <- function(state) {
+  # code from an earlier slide goes here
+}
+```
+
+]
+
+]
+
+- `plot_covid_cases_by_age_groups` is the function **name**
+  - Try to find informative, expressive names, preferably a verb 
+- Since a function is an object, we use the `<-` operator
+- `state` is the only **argument** of the function
+  - If we had more than one argument, we would write `function(state, arg2, arg3)`
+  - We can specify default values, e.g. `function(state = "Berlin")`. If an argument does not have a default value, its value must be given in the function call.
+- The actual code is placed in the **body** of the function enclosed by `{}`. The opening curly brackets `{` must follow immediately after `function()`. 
+- Use `return(some_object)` to return the object `some_object` (early). If `return()` is not used, the result of the function's last command will be returned.
+
+---
+
+## `plot_covid_cases_by_age_groups()`
+
+```{r plot_covid_cases_by_age_groups}
+plot_covid_cases_by_age_groups <- function(state) { #<<
+  covid %>%
+  filter(federal_state == state) %>% #<<
+  complete(ref_date, age_group, fill = list(cases = 0)) %>%
+  group_by(ref_date, age_group) %>%
+  summarize(n_cases = sum(cases)) %>% # average over districts and sexes
+  group_by(age_group) %>%
+  arrange(ref_date) %>%
+  mutate(rolling_mean = RcppRoll::roll_mean(n_cases, n = 14, fill = NA)) %>%
+  ungroup() %>% drop_na() %>%
+  ggplot(aes(x = ref_date, y = rolling_mean, fill = age_group)) +
+  geom_area(position = "fill") +
+  scale_fill_manual(values = c(RColorBrewer::brewer.pal(6, "Blues"), "gray30")) +
+  labs(
+    x = NULL, y = NULL, fill = "Age group",
+    title = paste("Active COVID-19 cases by age group in", state), #<<
+    caption = paste0("Source: Robert Koch Institute (", format(covid$data_date[1], "%d.%m.%y"), ")")
+  ) +
+  coord_cartesian(expand = FALSE) +
+  scale_y_continuous(labels = scales::percent) +
+  theme(plot.title = element_text(size = rel(1.05)))
+}
+```
+
+???
+
+- replace "Saxony-Anhalt" with the variable of the function argument (for filtering rows and for plot title)
+- no explicit use return()
+
+---
+
+## Calling the function
+
+```{r call-function-1, fig.width= 30/2.54, fig.height=8/2.54}
+plot_covid_cases_by_age_groups("Saxony-Anhalt")
+plot_covid_cases_by_age_groups("Bavaria")
+```
+
+---
+
+## More function arguments
+
+.content-box-green[
+
+Let's improve the function by adding the moving average window length as the second function argument.
+
+]
+
+.panelset[
+
+.panel[.panel-name[Code]
+
+.font90[
+
+```{r plot_covid_cases_by_age_groups-2}
+plot_covid_cases_by_age_groups <- function(state, w = 14) { #<<
+  covid %>%
+    filter(federal_state == state) %>%
+    complete(ref_date, age_group, fill = list(cases = 0)) %>%
+    group_by(ref_date, age_group) %>%
+    summarize(n_cases = sum(cases)) %>% # average over districts and sexes
+    group_by(age_group) %>%
+    arrange(ref_date) %>%
+    mutate(rolling_mean = RcppRoll::roll_mean(n_cases, n = w, fill = NA)) %>% #<<
+    ungroup() %>% drop_na() %>%
+    ggplot(aes(x = ref_date, y = rolling_mean, fill = age_group)) +
+    geom_area(position = "fill") +
+    scale_fill_manual(values = c(RColorBrewer::brewer.pal(6, "Blues"), "gray30")) +
+    labs(
+      x = NULL, y = NULL, fill = "Age group",
+      title = paste("Active COVID-19 cases by age group in", state),
+      caption = paste0("Source: Robert Koch Institute (", format(covid$data_date[1], "%d.%m.%y"), ")"),
+      subtitle = paste("Moving average window length =", w, "days") #<<
+    ) +
+    coord_cartesian(expand = FALSE) +
+    scale_y_continuous(labels = scales::percent) +
+    theme(plot.title = element_text(size = rel(1.05)))
+}
+```
+
+]
+
+]
+
+.panel[.panel-name[`w = 14` (default)]
+
+```{r call-function-w14, fig.width= 30/2.54, fig.height=13/2.54}
+plot_covid_cases_by_age_groups("Saxony-Anhalt")
+```
+
+]
+
+.panel[.panel-name[`w = 7`]
+
+```{r call-function-w7, fig.width= 30/2.54, fig.height=13/2.54}
+plot_covid_cases_by_age_groups("Saxony-Anhalt", w = 7)
+```
+
+]
+.panel[.panel-name[`w = 50`]
+
+```{r call-function-w50, fig.width= 30/2.54, fig.height=13/2.54}
+plot_covid_cases_by_age_groups("Saxony-Anhalt", w = 50)
+```
+
+]
+
+]
+
+---
+
+## Return value
+
+.content-box-blue[
+
+Recall that by default, the result of the function's last evaluated command will be returned. 
+We can use `return(some_object)` to return the object `some_object` early. 
+
+
+]
+
+.panelset[
+
+.panel[.panel-name[Example without `return()`]
+
+```{r return-value-1}
+convert_cm_to_inch <- function(cm) {
+  0.393701 * cm
+  42
+} 
+```
+
+```{r return-value-2}
+convert_cm_to_inch(10)
+convert_cm_to_inch(100)
+```
+
+]
+
+.panel[.panel-name[Example with `return()`]
+
+```{r return-value-3}
+convert_cm_to_inch <- function(cm) {
+  return(0.393701 * cm)
+  42
+} 
+```
+
+```{r return-value-4}
+convert_cm_to_inch(10)
+convert_cm_to_inch(100)
+```
+
+]
+
+]
+
+---
+
+## Naming things
+
+In `R`, **functions are objects**. 
+Objects must have **syntactically valid** names:
+
+- Names can only consist of letters, digits, `_` and `.`
+- Names must begin with a letter or with `.` _not_ followed by a digit
+  - Example: `.7up` is not valid, but `.sevenup` is
+- Names must not be one of the reserved words, e.g. `if`, `else`, `for`, `TRUE`, `NULL`...
+
+--
+
+.content-box-green[
+
+For names consisting of
+multiple words, it is recommended to use **snake_case** &#x1F40D; opposed to **camelCase** &#x1F42A;. 
+You are free to use `.`, but please mind consistency.
+
+]
+
+.pull-left60[
+
+```{r naming-good-bad-examples, eval=FALSE}
+# good
+crawl_corona_data
+crawl_covid19_data
+
+# bad
+crawl_data_on_sars_cov_2 # a bit too long
+ccd # too short and uninformative
+CrawlCoronaData # rather start with lowercase letter
+crawlcoronadata # rather separated words
+data # don't overwrite existing popular/base functions
+```
+
+]
+
+.pull-right40[
+
+.content-box-yellow[
+
+**Documentation:**
+
+- `?make.names` describes all requirements for syntactically valid names
+- `?reserved` lists all reserved words in `R`'s parser.
+
+]
+
+]
+
+.font80[Further reading: [The tidyverse style guide](https://style.tidyverse.org/syntax.html#object-names)]
+
+---
+
+## Lexical scoping
+
+**Scoping** describes in which order `R` searches for objects.
+
+```{r scoping-1}
+a <- 3
+f <- function() {
+  a <- 5
+  b <- 2
+  a^b
+}
+```
+
+.content-box-yellow[&#x1F914; _"What is the result of running `f()`?"_]
+
+--
+
+```{r scoping-2}
+f()
+```
+
+.content-box-yellow[&#x1F914; _"Why is the result not 9?"_]
+
+--
+
+.content-box-blue[
+
+First, `R` searches for object names in the environment of the called function.
+
+If the names does not exist in this environment, `R` searches in the
+next higher environment level.
+
+]
+
+???
+
+- each environment has a parent environment
+- if a name is not found in an environment, then R will look in its parent (and so on)
+
+---
+
+## Lexical scoping
+
+.pull-left[
+
+```{r scoping-3}
+a <- 3
+f <- function() {
+  a <- 5 #<<
+  b <- 2
+  a^b
+}
+f()
+```
+
+]
+
+.pull-right[
+
+```{r scoping-4}
+a <- 3
+g <- function() {
+  b <- 2
+  a^b
+}
+g()
+```
+
+
+]
+
+---
+
+## Lexical scoping
+
+Each function call starts with a new environment:
+
+```{r scoping-5, warning=FALSE, echo=FALSE}
+rm(x)
+```
+
+
+```{r scoping-6}
+h <- function() {
+  if(!exists("x")) {
+    x <- 1
+  } else {
+    x <- x + 1
+  }
+  x
+}
+```
+
+.pull-left[
+
+```{r scoping-7, error = TRUE}
+h()
+h()
+x
+```
+
+]
+
+--
+
+.pull-right[
+
+```{r scoping-8}
+x <- 5
+h()
+h()
+```
+
+]
+
+---
+
+## Calling functions
+
+.left-column[
+
+Basic function call scheme:
+
+```{r eval=FALSE}
+some_function(arg_1 = val_1,
+              arg_2 = val_2,
+              ...)
+```
+
+```{r, echo=FALSE, out.width="95%"}
+knitr::include_graphics(file.path(fig_path, "05-mean_help.png"))
+```
+
+]
+
+.right-column[
+
+Example: the `mean()` function:
+
+- `x` is the only mandatory argument
+- arguments `trim` and `na.rm` have default values
+
+```{r mean-1, error = TRUE, echo = TRUE, eval = FALSE}
+x <- 1:10
+mean(x) # trim = 0 and na.rm = FALSE
+```
+{{content}}
+
+]
+
+--
+
+```{r ref.label='mean-1', error = TRUE, echo = FALSE, eval = TRUE}
+```
+{{content}}
+
+--
+
+```{r mean-2, error = TRUE, echo = TRUE, eval = FALSE}
+x <- c(1:10, NA)
+mean(x)
+```
+{{content}}
+
+<!-- # Mean of a vector with >=1 NA's yields NA -->
+
+--
+
+```{r ref.label='mean-2', error = TRUE, echo = FALSE, eval = TRUE}
+```
+{{content}}
+
+--
+
+```{r mean-3, error = TRUE, echo = TRUE, eval = TRUE}
+mean(x, na.rm = TRUE) # NA's will be ignored
+```
+{{content}}
+
+--
+
+```{r mean-4, error = TRUE, echo = TRUE, eval = FALSE}
+mean(x, TRUE) # match unnamed args to their position
+```
+{{content}}
+
+--
+
+```{r ref.label='mean-4', error = TRUE, echo = FALSE, eval = TRUE}
+```
+{{content}}
+
+---
+
+name: iteration
+class: center, middle, inverse
+
+# Iteration
+
+---
+
+## Define the task
+
+.content-box-gray[
+
+**Goal:** Create and save a stacked area chart on Covid-19 cases by age groups for each of the 16 German states.
+
+]
+
+So far, we can do this:
+
+```{r call-covid-function-exhaustive, eval = FALSE}
+plot_covid_cases_by_age_groups("Baden-Wuerttemberg")
+plot_covid_cases_by_age_groups("Bavaria")
+plot_covid_cases_by_age_groups("Berlin")
+plot_covid_cases_by_age_groups("Brandenburg")
+# ...
+```
+
+---
+
+## Iteration
+
+.content-box-yellow[
+
+How can we apply our `plot_covid_cases_by_age_groups()` function to each federal state? 
+
+]
+
+1\. Option: using a `for` loop
+
+```{r for-loop, eval = FALSE}
+states <- sort(unique(covid$federal_states))
+plots <- vector("list", length = length(states))
+for(i in seq_along(states)) {
+  plots[[i]] <- plot_covid_cases_by_age_groups(states[i])
+}
+```
+
+2\. Option: using **functionals** (recommended)
+
+???
+
+Disadvantages of for loop:
+- we ourselves have to take care of generating an output container, setting the size
+
+---
+
+## Functionals
+
+.font90[
+
+Suppose we have the ratings of four persons for three TV series stored in a data frame:  
+
+```{r functionals-1}
+ratings <- tibble(
+  breaking_bad = c(1, 9, 4, 8),
+  the_crown = c(4, 2, 0, 5),
+  vikings = c(9, 9, 4, 1)
+)
+```
+
+We can calculate the average rating for each TV series with `map()`:
+
+```{r functionals-2}
+map(ratings, mean)
+```
+
+]
+
+--
+
+.font90[
+
+.pull-left[
+
+Return the result as double vector:
+
+```{r functionals-3}
+map_dbl(ratings, mean)
+```
+
+
+]
+
+.pull-right[
+
+Return the result as character vector:
+
+```{r functionals-4}
+map_chr(ratings, mean)
+```
+
+]
+
+]
+
+---
+
+## The `purrr` package
+
+.content-box-blue[
+
+The `purrr` package is part of the core Tidyverse and provides the `map` function family.
+A `map` function applies a given function to each element of a vector.
+
+]
+
+.pull-left70[
+
+`map*()` takes as arguments 
+1. a vector and 
+2. a function. 
+
+It return a new vector of the **same length** as the input. 
+The **type** of the vector is specified by the **suffix** of the `map*()` function. 
+
+- `map()` returns a list
+- `map_lgl()` returns a logical vector
+- `map_int()` returns an integer vector
+- `map_dbl()` returns a double vector
+- `map_chr()` returns a character vector
+- `map_dfr()` returns a data frame by row binding
+- `map_dfc()` returns a data frame by column binding
+- ...
+
+<!-- Function reference: RStudio's [`purrr` cheat sheet](https://github.com/rstudio/cheatsheets/raw/master/purrr.pdf) -->
+
+
+]
+
+.pull-right30[
+
+```{r purrr-logo, echo=FALSE, out.width="100%"}
+knitr::include_graphics(file.path(fig_path, "05-purrr.png"))
+```
+
+]
+
+---
+
+## Create a plot for each federal state
+
+Map the function `plot_covid_cases_by_age_groups` to each federal state and return a list of plots.
+
+```{r map, fig.width= 30/2.54, fig.height=13/2.54}
+states <- sort(unique(covid$federal_state))
+plots <- map(states, plot_covid_cases_by_age_groups)
+plots[[7]]
+```
+
+---
+
+## List columns in data frames
+
+`map()` helps to work with list columns in dplyr pipelines.
+
+For example, a ggplot2 plot is a list object.
+
+Suppose we want to store the plots in a data frame where each row contains the name of the federal state and the area plot.
+
+
+```{r mutate-error, error = TRUE}
+tibble(state = sort(unique(covid$federal_state))) %>%
+  mutate(plot_covid_cases_by_age_groups(state))
+```
+
+.content-box-red[
+
+The code yields an error because `dplyr` functions generally expect the output of functions to be of atomic vector type, i.e., logical, integer, double or character.
+
+]
+
+---
+
+We can leverage `map` functions to get it work.
+
+```{r mutate-map}
+covid_plots <- tibble(state = sort(unique(covid$federal_state))) %>%
+  mutate(plot = map(state, plot_covid_cases_by_age_groups)) #<<
+covid_plots
+```
+
+
+---
+
+## Other useful `purrr` functions
+
+.panelset[
+
+.panel[.panel-name[`pluck()`]
+
+Use `pluck()` to index into data structures. The function is particularly useful within a pipeline.
+
+Suppose we want to extract the plot for Hamburg:
+
+```{r pluck, fig.width= 30/2.54, fig.height=10/2.54}
+covid_plots %>%
+  filter(state == "Hamburg") %>%
+  pluck("plot", 1)
+```
+
+]
+
+
+.panel[.panel-name[`One-sided formulas`]
+
+To save some typing, use **~ (pronounced _twiddle_)** for inline (anonymous) functions you want to use in `map()`:
+
+```{r map-one-sided-formula-1, fig.width= 30/2.54, fig.height=8/2.54}
+covid_plots %>%
+  mutate(plot = map(plot, ~ .x + theme(text = element_text(color = "red")))) %>% #<<
+  pluck("plot", 10)
+```
+
+```{r map-one-sided-formula-2, fig.width= 30/2.54, fig.height=8/2.54, eval = FALSE}
+# ...which is equivalent to:
+covid_plots %>%
+  mutate(plot = map(plot, function(x) {x + theme(text = element_text(color = "red"))})) %>% #<<
+  pluck("plot", 10)
+```
+
+
+]
+
+
+.panel[.panel-name[`map2()`]
+
+Use `map2()` if you want to map over **two** vectors.
+
+Suppose we want to save our plots as png files, using the federal state's name as file name.
+
+```{r map2}
+save_plot <- function(gg, name) {
+  ggsave(
+    filename = paste0(name, ".png"), plot = gg,
+    width = 28, height = 12, units = "cm", dpi = 300
+  )
+} 
+covid_plots %>% mutate(save_plot = map2(plot, state, save_plot))
+```
+
+```{r rm-temp-plots, include = FALSE}
+file.remove(paste0(unique(covid$federal_state), ".png"))
+```
+
+.content-box-blue[
+
+The map functions always have a return value.
+Here, we actually don't need a return value but we run the function `save_plot()` for its **side effect**, i.e., saving the plots.
+
+]
+
+]
+.panel[.panel-name[`walk*()`]
+
+Use `walk()` to apply a function for its **side-effect** to each element of a vector.
+
+For each map function, there is an equivalent walk function, e.g. `map2()` &rarr; `walk2()`
+
+```{r walk2}
+walk2(covid_plots$plot, covid_plots$state, save_plot)
+```
+
+```{r rm-temp-plots-ref, ref.label = "rm-temp-plots", include = FALSE}
+```
+
+]
+
+<!-- .panel[.panel-name[`pluck()`]] -->
+
+]
+
+---
+
+```{r session-info, child="session_info.Rmd"}
+```
+
+---
+
+```{r last-slide, child="last-slide.Rmd"}
+```

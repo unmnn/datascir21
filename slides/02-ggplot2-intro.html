@@ -1,0 +1,3371 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Visualizing data with ggplot2</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Uli Niemann" />
+    <script src="libs/header-attrs/header-attrs.js"></script>
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/tile-view/tile-view.css" rel="stylesheet" />
+    <script src="libs/tile-view/tile-view.js"></script>
+    <link href="libs/panelset/panelset.css" rel="stylesheet" />
+    <script src="libs/panelset/panelset.js"></script>
+    <link rel="stylesheet" href="assets/css/my-theme.css" type="text/css" />
+    <link rel="stylesheet" href="assets/css/my-fonts.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+
+
+
+
+class: title-slide, center, bottom
+
+# 02 - Visualizing data with ggplot2
+
+## Data Science with R &amp;#183; Summer 2021
+
+### Uli Niemann &amp;#183; Knowledge Management &amp; Discovery Lab
+
+#### [https://brain.cs.uni-magdeburg.de/kmd/DataSciR/](https://brain.cs.uni-magdeburg.de/kmd/DataSciR/)
+
+.courtesy[&amp;#x1F4F7; Photo courtesy of Ulrich Arendt]
+
+---
+
+## Datasets
+
+In `R` most datasets come in the form of data frames:
+
+- Each row is an **observation**.
+- Each column is a **variable**.
+
+
+```r
+library(gapminder)
+gapminder
+```
+
+```
+## # A tibble: 1,704 x 6
+##    country     continent  year lifeExp      pop gdpPercap
+##    &lt;fct&gt;       &lt;fct&gt;     &lt;int&gt;   &lt;dbl&gt;    &lt;int&gt;     &lt;dbl&gt;
+##  1 Afghanistan Asia       1952    28.8  8425333      779.
+##  2 Afghanistan Asia       1957    30.3  9240934      821.
+##  3 Afghanistan Asia       1962    32.0 10267083      853.
+##  4 Afghanistan Asia       1967    34.0 11537966      836.
+##  5 Afghanistan Asia       1972    36.1 13079460      740.
+##  6 Afghanistan Asia       1977    38.4 14880372      786.
+##  7 Afghanistan Asia       1982    39.9 12881816      978.
+##  8 Afghanistan Asia       1987    40.8 13867957      852.
+##  9 Afghanistan Asia       1992    41.7 16317921      649.
+## 10 Afghanistan Asia       1997    41.8 22227415      635.
+## # ... with 1,694 more rows
+```
+
+???
+
+"Gapminder" dataset which
+contains global health and economic data for 142 countries between 1952 and 2007
+in increments of 5 years.
+
+---
+
+## Example: Germany in 2007
+
+.left-column[
+
+![](figures/02-flag-germany.svg)
+
+]
+
+.right-column[
+
+- `country = "Germany"`
+- `continent = "Europe"`
+- `year = 2007`
+- `lifeExp = 79.4` years
+- `pop = 82400996` inhabitants
+- `gdpPercap = 32170` USD
+
+]
+
+---
+
+## What's in the Gapminder data?
+
+Take a `glimpse()` at the data:
+
+
+```r
+library(dplyr)
+glimpse(gapminder)
+```
+
+```
+## Rows: 1,704
+## Columns: 6
+## $ country   &lt;fct&gt; "Afghanistan", "Afghanistan", "Afghanistan", "Afghanistan", "Afghanist~
+## $ continent &lt;fct&gt; Asia, Asia, Asia, Asia, Asia, Asia, Asia, Asia, Asia, Asia, Asia, Asia~
+## $ year      &lt;int&gt; 1952, 1957, 1962, 1967, 1972, 1977, 1982, 1987, 1992, 1997, 2002, 2007~
+## $ lifeExp   &lt;dbl&gt; 28.801, 30.332, 31.997, 34.020, 36.088, 38.438, 39.854, 40.822, 41.674~
+## $ pop       &lt;int&gt; 8425333, 9240934, 10267083, 11537966, 13079460, 14880372, 12881816, 13~
+## $ gdpPercap &lt;dbl&gt; 779.4453, 820.8530, 853.1007, 836.1971, 739.9811, 786.1134, 978.0114, ~
+```
+
+---
+
+## Consulting the dataset documentation
+
+.content-box-yellow[
+
+- How many rows and columns does this dataset contain?  
+- What does each row represent?  
+- What does each column represent?
+
+]
+
+
+```r
+?gapminder
+# alternative: place cursor within `gapminder` and press F1
+```
+
+&lt;img src="figures//02-gapminder-help.png" width="40%" /&gt;
+
+---
+
+.content-box-yellow[
+
+How many rows and columns does this dataset contain?  
+
+]
+
+
+```r
+nrow(gapminder) # number of rows
+```
+
+```
+## [1] 1704
+```
+
+```r
+ncol(gapminder) # number of columns
+```
+
+```
+## [1] 6
+```
+
+```r
+dim(gapminder) # dimensions (row column)
+```
+
+```
+## [1] 1704    6
+```
+
+---
+
+## Why visualize data?
+
+.pull-left60[
+
+Visualization is part of...
+
+- **Exploratory data analysis**: understand distributions, identify outliers &amp; missing data
+- **Feature engineering**: discover relationships between two or more predictors and extract a new predictor to increase model performance
+- **Model presentation**: show clusters, dimension reductions, etc.
+- **Model evaluation**: graphically describe the performance of one or 
+more inferential or predictive models
+- **Storytelling**: convincingly communicate a data-driven finding
+
+]
+
+.pull-right40[
+
+&lt;img src="figures//02-africa.png" width="100%" style="display: block; margin: auto;" /&gt;
+
+.font80[
+Figure source: Kieran Healy. ["Data Visualization. A practical introduction"](http://socviz.co/). Princeton University Press, 2018.
+]
+
+]
+
+---
+
+## Anscombe's quartett
+
+
+
+.pull-left[
+
+
+```
+##    group  x     y
+## 1      1 10  8.04
+## 2      1  8  6.95
+## 3      1 13  7.58
+## 4      1  9  8.81
+## 5      1 11  8.33
+## 6      1 14  9.96
+## 7      1  6  7.24
+## 8      1  4  4.26
+## 9      1 12 10.84
+## 10     1  7  4.82
+## 11     1  5  5.68
+## 12     2 10  9.14
+## 13     2  8  8.14
+## 14     2 13  8.74
+## 15     2  9  8.77
+## 16     2 11  9.26
+## 17     2 14  8.10
+## 18     2  6  6.13
+## 19     2  4  3.10
+## 20     2 12  9.13
+## 21     2  7  7.26
+## 22     2  5  4.74
+```
+
+]
+
+.pull-right[
+
+
+```
+##    group  x     y
+## 23     3 10  7.46
+## 24     3  8  6.77
+## 25     3 13 12.74
+## 26     3  9  7.11
+## 27     3 11  7.81
+## 28     3 14  8.84
+## 29     3  6  6.08
+## 30     3  4  5.39
+## 31     3 12  8.15
+## 32     3  7  6.42
+## 33     3  5  5.73
+## 34     4  8  6.58
+## 35     4  8  5.76
+## 36     4  8  7.71
+## 37     4  8  8.84
+## 38     4  8  8.47
+## 39     4  8  7.04
+## 40     4  8  5.25
+## 41     4 19 12.50
+## 42     4  8  5.56
+## 43     4  8  7.91
+## 44     4  8  6.89
+```
+
+]
+
+---
+
+## Summarizing Anscombe's quartet
+
+
+```r
+ans %&gt;%
+  group_by(group) %&gt;%
+  summarize(
+    n = n(),
+    mean_x = mean(x),
+    mean_y = mean(y),
+    sd_x = sd(x),
+    sd_y = sd(y),
+    r = cor(x, y)
+  )
+```
+
+```
+## # A tibble: 4 x 7
+##   group     n mean_x mean_y  sd_x  sd_y     r
+##   &lt;chr&gt; &lt;int&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1 1        11      9   7.50  3.32  2.03 0.816
+## 2 2        11      9   7.50  3.32  2.03 0.816
+## 3 3        11      9   7.5   3.32  2.03 0.816
+## 4 4        11      9   7.50  3.32  2.03 0.817
+```
+
+---
+
+## Visualizing  Anscombe's quartet
+
+&lt;img src="figures/_gen/02/anscombe-viz-1.png" width="708.661417322835" /&gt;
+
+---
+
+## Life expectancy vs. GDP
+
+.content-box-yellow[
+
+* How would you describe the relationship between life expectancy and GDP per capita in 1952? 
+* What other variables could have an influence on the shown trend?
+* Which is the country with moderate life expectancy but extremely high GDP?
+
+]
+
+
+
+&lt;img src="figures/_gen/02/gapminder-life-gdp-outlier-1-1.png" width="708.661417322835" /&gt;
+
+---
+
+class: middle, center
+
+&lt;img src="figures/_gen/02/gapminder-life-gdp-outlier-2-1.png" width="850.393700787402" /&gt;
+
+---
+
+# Data visualization
+
+.content-box-blue[Data visualization =  graphical representation of data]
+
+- There are many tools for visualizing data &amp;ndash; D3, Microsoft Excel, Python, `R`, ...
+- There are many systems within `R` for creating data visualizations &amp;ndash; base, lattice, ggplot2
+
+&lt;img src="figures/_gen/02/base-lattice-ggplot2-1.png" width="33%" /&gt;&lt;img src="figures/_gen/02/base-lattice-ggplot2-2.png" width="33%" /&gt;&lt;img src="figures/_gen/02/base-lattice-ggplot2-3.png" width="33%" /&gt;
+
+---
+
+## `ggplot2` &amp;#x1F4C8;
+
+.footnote[[1] Leland Wilkinson. _The grammar of graphics._ Springer Science &amp; Business Media, 2006.]
+
+.pull-left70[
+
+.content-box-blue[
+
+[`ggplot2`](https://ggplot2.tidyverse.org/index.html) is a package for **data visualization** and part of the tidyverse.
+
+]
+
+&lt;!-- &amp;#x1F914; _"...but base R already includes inbuilt plotting capabilities. Why should we care about `ggplot2`?"_ --&gt;
+
+- `ggplot2` is inspired by the **Grammar of Graphics**&lt;sup&gt;1&lt;/sup&gt;
+-  idea: **break the graph into components** and **handle each component individually** &amp;rarr; ensure versatility and control
+- a `ggplot2` chart is built by stacking a **series of layers**
+- advantage: build a **variety of different charts** with the same vocabulary &amp;rarr; code that is easier to read and write
+
+]
+
+.pull-right30[
+
+&lt;img src="figures//02-hex-ggplot2.png" width="100%" /&gt;
+
+]
+
+
+???
+
+- basic idea of gg: no matter whether you would like to draw a pie chart, a line chart,
+a bar chart or a scatterplot, what you always do is create a **graphic**
+- but what is a graphic: a graphic can be decomposed into multiple layers
+- instead of having different "super"-functions for every possible chart type
+like in base R, the idea of gg is to describe a large variety of different charts
+with the same vocabulary
+- ggplot is a specific implementation of gg
+  - goal: create informative and elegant graphs with relatively simple and readable code
+  - part of the tidyverse -&gt; works exclusevly with data frames
+  - requires tidy data frames
+
+versatility - Vielseitigkeit, Flexibilität
+
+umfangreich, intuitiv und flexibel
+
+&lt;!-- - default behaviour is carefully chosen to satisfy the great majority of cases and are aesthetically pleasing --&gt;
+&lt;!-- - it is possible to create informative and elegant graphs with relatively simple and readable code --&gt;
+&lt;!-- - limitation: since ggplot is part of the tidyverse, it is very data frame centric, so it is designed to work exclusively with data tables -&gt; advantage: assuming that the data follows this format, it simplifies the code and learning the grammar  --&gt;
+
+&lt;!-- So far, we have covered some EDA approaches for _univariate_ data, e.g. histograms, qq-plots and boxplots. Now, learn more details and introduce some tools and summary statistics for paired data. We do this using the powerful `ggplot2` package. --&gt;
+
+&lt;!-- versatility - Vielseitigkeit, Flexibilität --&gt;
+
+&lt;!-- umfangreich, intuitiv und flexibel --&gt;
+
+---
+
+## Components of a graphic
+
+&lt;img src="figures//02-grammar_of_graphics.gif" width="100%" /&gt;
+
+.footnote[.font90[Figure: Thomas de Beus. ["Think About the Grammar of Graphics When Improving Your Graphs"](https://medium.com/tdebeus/think-about-the-grammar-of-graphics-when-improving-your-graphs-18e3744d8d18). Medium, 2017.]]
+
+---
+
+## `ggplot2` vocabulary
+
+&lt;!-- .footnote[[1] [`ggplot2` function reference](http://ggplot2.tidyverse.org/reference/)] --&gt;
+
+.pull-left60[
+
+- **data**: the actual data that is plotted as _tidy_ data frame
+- **aesthetics/mapping**: **map variables to visual properties**
+  - x- and y-coordinates, color, shapes, transparency, line type
+- **geoms** - geometric objects
+  - points, bars, lines, histograms, etc.
+- **stats** - data transformations (often implicit)
+  - counts of categories for bar charts, summary statistics for a boxplot, regression parameters, etc.
+- **scales** - translate between variable ranges and visual properties
+  - which color should represent which category?, should the y-axis be log-transformed?
+- **facets** - spread data onto multiple subplots/panels
+- **coordinates** - change and adjust the coordinate system
+  - cartesian, polar or cartographic coordinate system
+- **themes** - additional visual settings not related to the data
+  - font size or background color
+
+]
+
+.pull-right40[
+
+&lt;img src="figures//02-gg_components.png" width="100%" /&gt;
+
+]
+
+???
+
+- stats: convert raw data into new data which gets plotted
+- scales: translate between data values and properties of the plot
+- coordinates: physical position of the points, lines, etc. on the paper
+
+---
+
+## First ggplot2 visualization
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/gapminder-life-gdp-outlier-wo-color-1.png" width="708.661417322835" /&gt;
+
+]
+.panel[.panel-name[Code]
+
+.content-box-blue[
+
+- Which data subset is being plotted?
+- What does each part of the code do?
+- Which variables map to which **aes**thetical features of the plot?
+
+]
+
+
+```r
+ggplot(
+  data = filter(gapminder, year == 1952), 
+  mapping = aes(x = lifeExp, y = gdpPercap)
+) +
+  geom_point() +
+  labs(
+    x = "Life expectancy (years)",
+    y = "GDP per capita (USD)",
+    title = "Relationship between life expectancy and GDP in 1952"
+  )
+```
+
+]
+
+]
+
+---
+
+## First ggplot2 visualization
+
+The first step in creating a `ggplot2` graph is to define a `ggplot` object with the `ggplot()` function.
+The main arguments are:
+
+- `data`: the data frame associated with the graph
+- `mapping`: the **aes**thetical mapping, i.e., which variables from the data will be mapped
+to the x- or y-position, color, shape, transparency, etc.
+
+After initializing the graph, we continuously stack **layers** on top of (like LEGO blocks) with the `+` operator.
+
+.pull-left60[
+
+For example, we would like to create a graph from the Gapminder data, showing `gdpPercap` and `lifeExp` as scatterplot **geom**etry.
+
+
+```r
+library(tidyverse) # loads also ggplot2
+ggplot(
+  data = gapminder,
+  mapping = aes(x = gdpPercap, y = lifeExp)
+) +
+  geom_point()
+```
+
+]
+
+.pull-right40[
+
+&lt;img src="figures/_gen/02/unnamed-chunk-4-1.png" width="425.196850393701" /&gt;
+
+]
+
+---
+
+class: middle
+
+&lt;img src="figures//02-ggplot2_syntax.png" width="100%" style="display: block; margin: auto;" /&gt;
+
+???
+
+- which dataset to plot
+- which columns to use for x and y
+- how to draw the plot
+- + to combine ggplot2 elements
+
+---
+
+.panelset[
+
+.panel[
+.panel-name[Step 1]
+
+
+```r
+ggplot(data = gapminder)
+```
+
+&lt;img src="figures/_gen/02/gap-1-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[
+.panel-name[Step 2]
+
+
+```r
+ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp))
+```
+
+&lt;img src="figures/_gen/02/gap-2-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[
+.panel-name[Step 3a]
+
+
+```r
+ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp)) +
+  geom_point() # adds a scatterplot layer
+```
+
+&lt;img src="figures/_gen/02/gap-3-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[
+.panel-name[Step 3b]
+
+
+```r
+ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp)) +
+  geom_smooth(method = "lm") # adds a trend line (lm = linear regression fit)
+```
+
+&lt;img src="figures/_gen/02/gap-4-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[
+.panel-name[Step 4]
+
+
+```r
+# Add both scatterplot layer and trend line layer
+ggplot(data = gapminder, mapping = aes(x = gdpPercap, y = lifeExp)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+&lt;img src="figures/_gen/02/gap-5-1.png" width="425.196850393701" /&gt;
+
+]
+
+]
+
+---
+
+&lt;iframe src="https://ggplot2.tidyverse.org/" width="100%" height="600px"&gt;&lt;/iframe&gt;
+
+---
+
+background-image: url("figures/02-ggplot2-cheatsheet_1.png")
+background-size: contain
+
+???
+
+https://github.com/rstudio/cheatsheets/raw/master/data-visualization-2.1.pdf
+
+---
+
+background-image: url("figures/02-ggplot2-cheatsheet_2.png")
+background-size: contain
+
+---
+
+## Further aesthetics
+
+&lt;img src="figures/_gen/02/shapes-1.png" width="708.661417322835" style="display: block; margin: auto;" /&gt;
+
+???
+
+- so far, we have made two mappings: one variable represents x-position and one variable represents y-position
+
+---
+
+## Further aesthetics
+
+.pull-left70[
+
+
+```r
+ggplot(
+  gapminder, 
+  aes(
+    x = gdpPercap, y = lifeExp,
+*   color = continent
+  )
+) + geom_point()
+```
+
+&lt;img src="figures/_gen/02/aes-color-1.png" width="566.929133858268" /&gt;
+
+]
+
+.pull-right30[
+
+color | &amp;nbsp; | continent
+----: | :----: | :----
+&lt;span style="color: #f8766d;"&gt;red&lt;/span&gt; | &amp;xharr; | Africa
+&lt;span style="color: #a3a500;"&gt;olive&lt;/span&gt; | &amp;xharr; | Americas
+&lt;span style="color: #00bf7d;"&gt;green&lt;/span&gt; | &amp;xharr; | Asia
+&lt;span style="color: #00b0f6;"&gt;blue&lt;/span&gt; | &amp;xharr; | Europe
+&lt;span style="color: #e76bf3;"&gt;pink&lt;/span&gt; | &amp;xharr; | Oceania
+
+&amp;nbsp;
+
+.content-box-blue[
+
+By default, `ggplot2` always creates a legend for mapping variables.
+
+]
+
+]
+
+
+---
+
+## Global vs. local aesthetics
+
+We can specify the aesthetic mapping either **globally** within the `ggplot()` function or **individually** for a specific layer within a `geom_*()` function.
+
+If set globally, the aesthetic mapping takes effect on **all** geom layers.
+
+.panelset[
+
+.panel[.panel-name[Global]
+
+.pull-left[
+
+
+```r
+# continent is mapped to color for 
+# all underlying layers
+ggplot(
+  data = gapminder, 
+  mapping = aes(
+    x = gdpPercap, 
+    y = lifeExp, 
+    color = continent)
+  )  +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  scale_x_log10()
+```
+
+]
+
+.pull-right[
+
+&lt;img src="figures/_gen/02/unnamed-chunk-5-1.png" width="504" /&gt;
+
+]
+
+]
+.panel[.panel-name[!!!Local]
+
+.pull-left[
+
+
+```r
+# continent is mapped to color only 
+# for scatterplot layer
+ggplot(
+  data = gapminder,
+  mapping = aes(x = gdpPercap, y = lifeExp)
+) +
+  geom_point(mapping = aes(color = continent)) +
+  geom_smooth(method = "lm") +
+  scale_x_log10()
+```
+
+.content-box-blue[
+
+.font80[
+
+Note that the legend keys have also changed. Since the color mapping does not
+apply on the regression line anymore, the legend keys only show a point instead
+of a point and a line.
+
+]
+
+]
+
+.pull-right[
+
+&lt;img src="figures/_gen/02/unnamed-chunk-6-1.png" width="504" /&gt;
+
+]
+
+]
+
+]
+&lt;!-- .panel[.panel-name[]] --&gt;
+&lt;!-- .panel[.panel-name[]] --&gt;
+&lt;!-- .panel[.panel-name[]] --&gt;
+
+]
+
+---
+
+## Setting layer arguments
+
+Layer arguments that are **independent from the underlying data frame** are
+set outside of `aes()`.
+
+For example, we can make some cosmetic adjustments by setting the points' **color**
+and transparency (**alpha**), the line's color and **size**. Further, we remove the
+confidence interval (**se**) of the linear regression fit.
+
+.pull-left[
+
+
+```r
+ggplot(
+  data = gapminder,
+  mapping = aes(x = gdpPercap, y = lifeExp)
+) +
+  geom_point(
+    alpha = 0.3, 
+    color = "cornflowerblue"
+  ) + 
+  geom_smooth(
+    method = "lm",
+    color = "firebrick", 
+    se = FALSE, 
+    size = 2
+  ) +
+  scale_x_log10()
+```
+
+]
+
+.pull-right[
+
+&lt;img src="figures/_gen/02/unnamed-chunk-7-1.png" width="425.196850393701" /&gt;
+
+]
+
+---
+
+The following example shows an **incorrect** use of geom arguments.
+We would like to show multiple boxplots depicting the distribution of GDP/capita for each continent and
+adjust the boxplots' line size to `0.75`.
+
+
+.panelset[
+
+.panel[.panel-name[What we actually wanted]
+
+&lt;img src="figures/_gen/02/aes-nse-1.png" width="396.850393700787" /&gt;
+
+]
+
+.panel[.panel-name[What we got]
+
+.pull-left[
+
+
+```r
+ggplot(gapminder) + geom_boxplot(
+  aes(x = "continent", y = gdpPercap,
+      size = 0.75)
+)
+```
+
+&lt;img src="figures/_gen/02/aes-nse-incorrect-1.png" width="425.196850393701" /&gt;
+
+&amp;#x1F914; _What went wrong here?_
+
+]
+
+.pull-right[
+
+.content-box-yellow[
+
+To fix the two problems of the code, we have to adhere to the following
+principles:
+
+1. Within `aes()`, variables names must be passed as **expressions**, i.e., **without quotes**.
+1. **Non-aesthetic arguments** must be set **outside** of `aes()`.
+
+]
+
+]
+
+]
+
+]
+
+???
+
+- show a box for each continent
+- size is larger than 0.75
+- do not need a label for size
+
+---
+
+class: middle
+
+.pull-left[
+
+&lt;center&gt;.font150[&amp;#x1F62D;]&lt;/center&gt;
+
+
+```r
+ggplot(gapminder) + geom_boxplot(
+  aes(x = "continent", y = gdpPercap,
+      size = 0.75)
+)
+```
+
+&lt;img src="figures/_gen/02/unnamed-chunk-8-1.png" width="425.196850393701" /&gt;
+
+]
+
+.pull-right[
+
+&lt;center&gt;.font150[&amp;#x1F60A;]&lt;/center&gt;
+
+
+```r
+ggplot(gapminder) + 
+  geom_boxplot(
+    aes(x = continent, y = gdpPercap), 
+    size = 0.75 
+  )
+```
+
+&lt;img src="figures/_gen/02/unnamed-chunk-9-1.png" width="396.850393700787" /&gt;
+
+]
+
+---
+
+exclude: true
+class: exercise-blue, middle
+
+## Quiz
+
+Why are the bars of the histogram colored in red although we have specified
+a blue color?
+
+
+```r
+ggplot(gapminder) +
+  geom_histogram(aes(x = gdpPercap, fill = "steelblue"))
+```
+
+&lt;img src="figures/_gen/02/histo-steelblue-1-1.png" width="453.543307086614" /&gt;
+
+---
+
+## Stats
+
+**Stats** are linked to geometries. Every geom has a default stat.
+
+.pull-left[
+
+
+```r
+gapminder %&gt;%
+  ggplot(aes(x = continent)) +
+  geom_bar(stat = "count") # default
+```
+
+&lt;img src="figures/_gen/02/stat-1-1.png" width="425.196850393701" /&gt;
+
+`stat = "count"` automatically computes the number of observations for each category, which is the variable mapped to the x-aesthetic.
+
+]
+
+--
+
+.pull-right[
+
+
+```r
+gapminder %&gt;% count(continent) %&gt;%
+  ggplot(aes(x = continent, y = n)) +
+  geom_bar(stat = "identity")
+```
+
+&lt;img src="figures/_gen/02/stat-2-1.png" width="425.196850393701" /&gt;
+
+`stat = "identity"` requires to specify a variable that is mapped to `y` (bar height).
+
+]
+
+???
+
+You can add `stat_*()` layers to the graph, but this is not required most of the time.
+
+---
+
+## Position adjustment
+
+
+```r
+selected_c &lt;- c("Germany", "France", "Italy", "United States", "Canada")
+s07 &lt;- filter(gapminder, year == 2007, country %in% selected_c)
+```
+
+
+.pull-left[
+
+
+```r
+ggplot(s07, aes(continent, fill = country)) +
+* geom_bar() # default: position_stack()
+```
+
+&lt;img src="figures/_gen/02/pos-bar-1-1.png" width="468" /&gt;
+
+{{content}}
+
+]
+
+--
+
+
+```r
+ggplot(s07, aes(continent, fill = country)) +
+* geom_bar(position = position_stack())
+```
+
+&lt;img src="figures/_gen/02/pos-bar-2-1.png" width="468" /&gt;
+
+--
+
+.pull-right[
+
+
+```r
+ggplot(s07, aes(continent, fill = country)) +
+* geom_bar(position = position_dodge())
+```
+
+&lt;img src="figures/_gen/02/pos-bar-3-1.png" width="468" /&gt;
+
+{{content}}
+
+]
+
+--
+
+
+```r
+ggplot(s07, aes(continent, fill = country)) +
+* geom_bar(position = position_fill())
+```
+
+&lt;img src="figures/_gen/02/pos-bar-4-1.png" width="468" /&gt;
+
+---
+
+## Position adjustment
+
+
+```r
+g07 &lt;- filter(gapminder, year == 2007)
+```
+
+
+.pull-left[
+
+
+```r
+ggplot(g07, aes(gdpPercap, lifeExp)) +
+  
+  
+  
+  geom_point()
+```
+
+&lt;img src="figures/_gen/02/pos-1-1.png" width="425.196850393701" /&gt;
+
+]
+
+--
+
+.pull-right[
+
+
+```r
+ggplot(g07, aes(gdpPercap, lifeExp)) +
+ geom_point(
+  position = 
+   position_jitter(width = 3000, height = 30)
+  ) 
+```
+
+&lt;img src="figures/_gen/02/pos-2-1.png" width="425.196850393701" /&gt;
+
+]
+
+---
+
+## Scales
+
+- Every aesthetical mapping given by `aes()` will have a scale
+- If no **scale layer** is explicitly provided, a default scale will be used 
+- Scale function names follow an intuitive scheme: .font120[**`scale_&lt;AES&gt;_&lt;TYPE&gt;()`**]
+
+Examples:
+
+- continuous scale: `scale_&lt;AES&gt;_continuous()`
+- discrete scale: `scale_&lt;AES&gt;_discrete()`
+- scale with custom values: `scale_&lt;AES&gt;_manual()`
+- scale with colors from the RColorBrewer package: `scale_{color,fill}_brewer()`
+- scale with a color gradient `scale_{color,fill}_gradient()`
+- ...
+
+.content-box-blue[
+
+Except for x-/y-axis-scales, every scale will have its own **legend**. 
+
+]
+
+---
+
+## Axis scales
+
+.panelset[
+
+.panel[.panel-name[Default]
+
+
+```r
+ggplot(gapminder, aes(x = gdpPercap, y = lifeExp)) +
+  geom_point()
+```
+
+&lt;img src="figures/_gen/02/scale-0-1.png" width="425.196850393701" /&gt;
+
+The x- and y-axis scales default to `scale_x_continuous()` and
+`scale_y_continuous()`, respectively. 
+We do not need to explicitly add these layers to the graph.
+
+]
+
+.panel[.panel-name[Explicit default]
+
+
+```r
+ggplot(gapminder, aes(x = gdpPercap, y = lifeExp)) +
+  geom_point() +
+* scale_x_continuous()
+```
+
+&lt;img src="figures/_gen/02/scale-1-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[.panel-name[Customize scale]
+
+
+```r
+ggplot(gapminder, aes(x = gdpPercap, y = lifeExp)) +
+  geom_point() +
+  scale_x_continuous(limits = c(200, 50000))
+```
+
+```
+## Warning: Removed 6 rows containing missing values (geom_point).
+```
+
+&lt;img src="figures/_gen/02/scale-2-1.png" width="425.196850393701" /&gt;
+
+Note that we receive a warning. 
+There are 6 observations that are outside the specified x-axis range.  
+Since the graph reveals a log relationship between GDP per capita and life expectancy,
+we may improve it by log-transforming the x-axis.
+
+.font80[
+
+.content-box-green[
+
+Tip: In RStudio, write `scale_x_` and press **Tab ↹** or **Ctrl + SPACE ␣"**
+to get autocomplete suggestions
+of available x-axis scale transformation functions.
+
+]
+
+
+]
+
+]
+
+.panel[.panel-name[Log scale]
+
+
+```r
+ggplot(gapminder, aes(x = gdpPercap, y = lifeExp)) +
+  geom_point() +
+* scale_x_log10()
+```
+
+&lt;img src="figures/_gen/02/scale-3-1.png" width="425.196850393701" /&gt;
+
+The x-axis labels in scientific location don't look particularly pretty.  
+We would like to make the following changes:
+
+- make the x-axis labels more intuitive
+- set custom axis breaks at 500, 5000 and 50000
+
+
+]
+
+.panel[.panel-name[Further customization]
+
+
+```r
+ggplot(gapminder, aes(x = gdpPercap, y = lifeExp)) +
+  geom_point() +
+  scale_x_log10(
+    breaks = c(500, 5000, 50000), # ticks pos.
+    labels = scales::comma # alternative labeling function
+    # (put a comma before every three digits)
+  )
+```
+
+&lt;img src="figures/_gen/02/scale-4-1.png" width="425.196850393701" /&gt;
+
+]
+
+]
+
+---
+
+## Further examples of scale adjustments
+
+.panelset[
+
+.panel[.panel-name[Initial plot]
+
+
+```r
+ge7 &lt;- gapminder %&gt;% filter(year == 2002, continent == "Europe")
+```
+
+
+```r
+ggplot(ge7, aes(gdpPercap, lifeExp)) +
+  geom_point()
+```
+
+&lt;img src="figures/_gen/02/scale-5-1.png" width="425.196850393701" /&gt;
+
+]
+.panel[.panel-name[Custom breaks]
+
+
+```r
+ggplot(ge7, aes(gdpPercap, lifeExp)) +
+  geom_point() +
+  scale_x_continuous(
+    breaks = seq(8000, 40000, 8000)
+  ) 
+```
+
+&lt;img src="figures/_gen/02/scale-6-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[.panel-name[Custom limits]
+
+
+```r
+ggplot(ge7, aes(gdpPercap, lifeExp)) +
+  geom_point() +
+  scale_y_continuous(limits = c(65, 85))
+```
+
+&lt;img src="figures/_gen/02/scale-7-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[.panel-name[Manual labels]
+
+
+```r
+ggplot(ge7, aes(gdpPercap, lifeExp)) +
+  geom_point() +
+  scale_y_continuous(breaks = c(72, 80), labels = c("72", "80 yrs"))
+```
+
+&lt;img src="figures/_gen/02/scale-8-1.png" width="425.196850393701" /&gt;
+
+]
+
+]
+
+---
+
+## Color scales
+
+
+```r
+ggplot(gapminder, aes(x = continent, fill = continent)) +
+  geom_bar() # + scale_fill_discrete()
+```
+
+&lt;img src="figures/_gen/02/scale-fill-0-1.png" width="453.543307086614" /&gt;
+
+---
+
+## Color scales
+
+We can replace this default color scale by adding a different `scale_fill_*`
+layer.
+
+.pull-left60[
+
+
+```r
+ggplot(gapminder, aes(x = continent, fill = continent)) +
+  geom_bar() +
+* scale_fill_brewer(palette = "Dark2")
+```
+
+&lt;img src="figures/_gen/02/scale-fill-1.png" width="453.543307086614" /&gt;
+
+]
+
+.pull-right40[
+
+
+```r
+RColorBrewer::display.brewer.all()
+```
+
+&lt;img src="figures/_gen/02/colorbrewer-1.png" width="425.196850393701" /&gt;
+
+
+
+&lt;!-- .caption[Colorbrewer color scales] --&gt;
+
+]
+
+.footnote[
+
+[colorbrewer2.org](http://colorbrewer2.org/)
+
+]
+
+---
+
+
+```r
+colorspace::hcl_palettes(plot = TRUE)
+```
+
+&lt;img src="figures/_gen/02/colorspace-1-1.png" width="850.393700787402" style="display: block; margin: auto auto auto 0;" /&gt;
+
+&amp;rarr; .font140[`colorspace::scale\_&lt;AES&gt;\_&lt;TYPE&gt;\_&lt;COLORSCALE&gt;(palette = &lt;PALETTE-NAME&gt;)`]
+
+---
+
+.font140[`colorspace::scale\_&lt;AES&gt;\_&lt;TYPE&gt;\_&lt;COLORSCALE&gt;(palette = &lt;PALETTE-NAME&gt;)`]
+
+
+```r
+ggplot(gapminder, aes(x = gdpPercap, y = lifeExp, color = lifeExp)) +
+  geom_point() +
+* colorspace::scale_color_continuous_sequential("Magenta")
+```
+
+&lt;img src="figures/_gen/02/colorspace-2-1.png" width="425.196850393701" /&gt;
+
+.content-box-blue[
+
+The vector type of the variable that is mapped to the color aesthetic determines whether a color gradient is created (in case of a numeric variable) or whether a disrete color mapping is created (in case of a factor variable).
+
+]
+
+---
+
+
+
+
+```r
+scales::show_col(colors()) # colors() returns the built-in color names
+```
+
+.pull-left[
+
+&lt;img src="figures/_gen/02/all-colors-silent-1-1.png" width="566.929133858268" /&gt;
+
+]
+
+.pull-right[
+
+&lt;img src="figures/_gen/02/all-colors-silent-2-1.png" width="566.929133858268" /&gt;
+
+]
+
+???
+
+R understands 657 color names.
+
+
+---
+
+## Facetting
+
+One of the highlights of `ggplot2` is the possibility to easily **facet** a plot,
+i.e. splitting the data onto multiple panels. Facetting allows to compactly present a lot of information by **stratifying by a third variable**. Also, faceting often is a remedy against **overplotting**.
+
+The `facet_wrap()` function creates subpanels. Notation: `~`(tilde) comma-separated names of variables
+
+
+```r
+ggplot(data = gapminder, mapping = aes(x = year, y = gdpPercap)) +
+geom_line(aes(group = country)) +
+  scale_y_log10() +
+* facet_wrap(~ continent)
+```
+
+&lt;img src="figures/_gen/02/facet-1-1.png" width="720" /&gt;
+
+???
+
+Wenn wir die Beziehung zwischen 2 Variablen darstellen, kann es sein, dass eine andere Variable diese Beziehung verschleiert (Confounding). Zum Beispiel könnte es sein, dass der Kontinent einen Einfluss auf die Entwicklung des BIPs hat.
+
+Afrika: Absolutes wirtschaftliches Wachstum ist geringer als in Europa
+
+---
+
+## Facetting
+
+
+```r
+p &lt;- ggplot(data = gapminder %&gt;% filter(continent != "Oceania"), aes(x = year,y = gdpPercap))
+p + geom_line(aes(group = country)) +
+  geom_smooth(method = "loess", se = FALSE) +
+  scale_x_continuous(breaks = seq(1960, 2000, 20)) + scale_y_log10(labels = scales::dollar) +
+* facet_wrap(~ continent, nrow = 1) +
+  labs(x = NULL, y = "GDP per capita")
+```
+
+&lt;img src="figures/_gen/02/facet-2-1.png" width="566.929133858268" /&gt;
+
+.font80[.content-box-green[Instead of the formula notation (`~`), you can alternatively
+specify faceting variables with `vars()`, e.g. `facet_wrap(vars(continent))`]]
+
+???
+
+- loess: nicht-lineare, nicht-parametrische Regression
+- facetting variables are specified in formula notation http://r4ds.had.co.nz/model-basics.html
+
+---
+
+## `facet_wrap()` vs. `facet_grid()`
+
+- `facet_wrap()`: sequence of panels
+- `facet_grid()`: matrix of panels
+
+--
+
+Show GDP development, stratified by life expectancy groups:
+
+
+```r
+my_gapminder &lt;- gapminder %&gt;%  filter(continent %in% c("Africa", "Asia", "Europe")) %&gt;%
+  group_by(country) %&gt;% mutate(lifeExp = if_else(max(lifeExp)&lt;75, "lifeExp &lt; 75", "lifeExp &gt;= 75"))
+p &lt;- ggplot(data = my_gapminder, mapping = aes(x = year, y = gdpPercap)) +
+  geom_line(aes(group = country)) +
+  scale_x_continuous(breaks = seq(1960, 2000, 20)) +
+  scale_y_log10(labels = scales::dollar)
+```
+
+--
+
+.pull-left[
+
+
+
+```r
+*p + facet_wrap(~ continent + lifeExp)
+```
+
+&lt;img src="figures/_gen/02/facet-3-wrap-1.png" width="648" /&gt;
+
+]
+
+--
+
+.pull-right[
+
+
+```r
+*p + facet_grid(continent ~ lifeExp)
+```
+
+&lt;img src="figures/_gen/02/facet-3-grid-1.png" width="648" /&gt;
+
+]
+
+---
+
+## Labels
+
+
+```r
+p +
+  labs(
+    x = "GDP per capita",
+    y = "Life expectancy",
+    color = "Continent",
+    title = "Relationship between GDP per capita\nand life expectancy",
+    subtitle = "&lt;subtitle&gt;",
+    caption = "&lt;caption&gt;",
+    tag = "A"
+  )
+```
+
+&lt;img src="figures/_gen/02/labs-1.png" width="576" /&gt;
+
+---
+
+## Coordinates
+
+.font90[Specify on what type of canvas the data should be drawn on.]
+
+.pull-left[
+
+
+```r
+# Calculate average relative population growth
+# from 1952 to 2007 per continent
+(gc &lt;- gapminder %&gt;%
+  filter(year %in% c(1952, 2007)) %&gt;%
+  group_by(continent, year) %&gt;%
+  summarize(avg_pop = mean(pop)) %&gt;%
+  group_by(continent) %&gt;%
+  summarize(rel_pop_growth =
+              (avg_pop[2]-avg_pop[1]) /
+              avg_pop[1]))
+```
+
+```
+## # A tibble: 5 x 2
+##   continent rel_pop_growth
+##   &lt;fct&gt;              &lt;dbl&gt;
+## 1 Africa             2.91 
+## 2 Americas           1.60 
+## 3 Asia               1.73 
+## 4 Europe             0.402
+## 5 Oceania            1.30
+```
+
+]
+
+
+.pull-right[
+
+
+```r
+ggplot(gc, aes(x=continent, y=rel_pop_growth)) +
+  geom_col() +
+* coord_polar() +
+  scale_y_continuous(labels = scales::percent)
+```
+
+&lt;img src="figures/_gen/02/coord-1-1.png" width="425.196850393701" /&gt;
+
+.font80[A polar coordinate system interprets x as **radius** and y as **angle**.]
+
+]
+
+---
+
+## Coordinates
+
+For **zooming**, use `coord_*` layers instead of `scale_*` layers.
+
+.pull-left[
+
+
+```r
+ggplot(gc, aes(x=continent, y=rel_pop_growth)) +
+  geom_col() +
+* scale_y_continuous(limits = c(0, 1.7))
+```
+
+```
+## Warning: Removed 2 rows containing missing values
+## (position_stack).
+```
+
+&lt;img src="figures/_gen/02/coord-2-1.png" width="425.196850393701" /&gt;
+
+.font100[When using `scale_*`, data outside of the limits will be removed.]
+
+]
+
+.pull-right[
+
+
+```r
+ggplot(gc, aes(x=continent, y=rel_pop_growth)) +
+  geom_col() +
+* coord_cartesian(ylim = c(0, 1.7))
+```
+
+&lt;img src="figures/_gen/02/coord-3-1.png" width="425.196850393701" /&gt;
+
+.font100[When using `coord_*`, data outside of the limits will not be removed.]
+
+]
+
+---
+
+`coord_flip()` flips cartesian coordinates. It is very useful when you have a
+lot of categories on the x-axis or want to display
+very long labels.
+
+
+```r
+gf &lt;- filter(gapminder, year == 2007, continent == "Americas")
+```
+
+.pull-left[
+
+
+```r
+ggplot(gf, aes(country, pop)) +
+  geom_col()
+```
+
+&lt;img src="figures/_gen/02/coord-5-1.png" width="425.196850393701" /&gt;
+
+]
+
+.pull-right[
+
+
+```r
+ggplot(gf, aes(country, pop)) + geom_col() +
+* coord_flip()
+```
+
+&lt;img src="figures/_gen/02/coord-6-1.png" width="425.196850393701" /&gt;
+
+]
+
+By swapping horizontal and vertical axes, the country names become readable.
+
+---
+
+## Themes
+
+Use a theme layer to change style aspects of the plot that are not related to
+the data.
+
+Apply a build-in theme with `theme_&lt;NAME&gt;` to quickly change the overall appearance:
+
+
+```r
+p &lt;- ggplot(gapminder, aes(x = gdpPercap, y = lifeExp, color = continent)) + geom_point()
+p + theme_gray() # default theme
+```
+
+&lt;img src="figures/_gen/02/themes-1-2-1.png" width="396.850393700787" style="display: block; margin: auto;" /&gt;
+
+---
+
+## Alternative themes
+
+.panelset[
+
+.panel[.panel-name[`theme_grey()`]
+
+&gt; The signature ggplot2 theme with a grey background and white gridlines, designed to put the data forward yet make comparisons easy. &amp;mdash; `?theme_grey`
+
+
+```r
+p &lt;- ggplot(gapminder, aes(x = gdpPercap, y = lifeExp, color = continent)) + geom_point()
+p + theme_gray() # default theme
+```
+
+&lt;img src="figures/_gen/02/unnamed-chunk-12-1.png" width="396.850393700787" style="display: block; margin: auto;" /&gt;
+
+]
+
+.panel[.panel-name[`theme_bw()`]
+
+&gt; The classic dark-on-light ggplot2 theme. May work better for presentations displayed with a projector. &amp;mdash; `?theme_bw`
+
+
+```r
+p + theme_bw()
+```
+
+&lt;img src="figures/_gen/02/themes-3-1.png" width="396.850393700787" style="display: block; margin: auto;" /&gt;
+
+]
+
+.panel[.panel-name[`theme_minimal()`]
+
+&gt; A minimalistic theme with no background annotations. &amp;mdash; `?theme_minimal`
+
+
+```r
+p + theme_minimal()
+```
+
+&lt;img src="figures/_gen/02/themes-4-1.png" width="396.850393700787" style="display: block; margin: auto;" /&gt;
+
+]
+
+.panel[.panel-name[`theme_void()`]
+
+&gt; A completely empty theme. &amp;mdash; `?theme_void`
+
+
+```r
+p + theme_void()
+```
+
+&lt;img src="figures/_gen/02/themes-5-1.png" width="396.850393700787" style="display: block; margin: auto;" /&gt;
+
+]
+
+]
+
+---
+
+## `ggthemes`
+
+.panelset[
+
+.panel[.panel-name[Overview]
+
+&lt;iframe src="https://yutannihilation.github.io/allYourFigureAreBelongToUs/ggthemes/" width="100%" height="500px"&gt;&lt;/iframe&gt;
+
+&lt;https://yutannihilation.github.io/allYourFigureAreBelongToUs/ggthemes/&gt;
+
+]
+
+.panel[.panel-name[`theme_base()`]
+
+&gt; Theme similar to the default settings of the 'base' R graphics. &amp;mdash; `?theme_base`
+
+
+```r
+p + ggthemes::theme_base()
+```
+
+&lt;img src="figures/_gen/02/themes-6-1.png" width="396.850393700787" style="display: block; margin: auto;" /&gt;
+
+]
+.panel[.panel-name[`theme_excel_new()`]
+
+&gt; Theme for ggplot2 that is similar to the default style of charts in current versions of Microsoft Excel. &amp;mdash; `?theme_excel_new`
+
+
+```r
+p + ggthemes::theme_excel_new()
+```
+
+&lt;img src="figures/_gen/02/themes-7-1.png" width="396.850393700787" style="display: block; margin: auto;" /&gt;
+
+]
+
+]
+
+---
+
+## Modifying base theme properties
+
+.panelset[
+
+.panel[.panel-name[default base settings]
+
+
+```r
+p + theme_minimal()
+```
+
+&lt;img src="figures/_gen/02/themes-8-1.png" width="708.661417322835" /&gt;
+
+]
+
+.panel[.panel-name[custom base settings]
+
+
+```r
+p + theme_minimal(base_size = 24, base_family = "serif", base_line_size = 4)
+```
+
+&lt;img src="figures/_gen/02/themes-9-1.png" width="708.661417322835" /&gt;
+
+]
+
+Every theme has four fundamental properties:
+
+- `base_size` = 11 (in pt)
+- `base_family` = "sans" (sans serif font)
+- `base_line_size = base_size/22` (width of a line in pt)
+- `base_rect_size = base_size/22` (line width of borders and backgrounds)
+
+]
+
+---
+
+## Modify indiv. theme elements: `theme(&lt;ELEMENT&gt; = ...)`
+
+.panelset[
+
+.panel[.panel-name[Text]
+
+Make axes titles red and right-aligned.
+
+
+```r
+p + theme_minimal(base_size = 24) +
+* theme(axis.title = element_text(color = "red", hjust = 1))
+```
+
+&lt;img src="figures/_gen/02/themes-10-1.png" width="708.661417322835" /&gt;
+
+]
+
+.panel[.panel-name[Lines]
+
+Add a y-axis line with arrow. 
+
+
+```r
+p + theme_minimal(base_size = 24) +
+  theme(axis.line.y = element_line(arrow = arrow(type = "closed")))
+```
+
+&lt;img src="figures/_gen/02/themes-11-1.png" width="708.661417322835" /&gt;
+
+]
+
+.panel[.panel-name[Borders &amp; backgrounds]
+
+Make the legend box yellow and its border blue. 
+
+
+```r
+p + theme_minimal(base_size = 24) +
+* theme(legend.background = element_rect(fill = "yellow", color = "blue"))
+```
+
+&lt;img src="figures/_gen/02/themes-13-1.png" width="708.661417322835" /&gt;
+
+]
+
+.panel[.panel-name[Remove elements]
+
+Remove all grid lines.
+
+
+```r
+p + theme_minimal(base_size = 24) +
+* theme(panel.grid = element_blank())
+```
+
+&lt;img src="figures/_gen/02/themes-12-1.png" width="708.661417322835" /&gt;
+
+]
+
+.panel[.panel-name[More]
+
+Put the legend above the plot.
+
+
+```r
+p + theme_minimal(base_size = 24) +
+* theme(legend.position = "top")
+```
+
+&lt;img src="figures/_gen/02/themes-14-1.png" width="708.661417322835" /&gt;
+
+]
+
+.panel[.panel-name[Get help]
+
+.content-box-blue[
+
+`?theme` is your friend. &amp;#x1F60E;
+
+&lt;img src="figures//02-theme.png" width="50%" /&gt;
+
+]
+
+]
+
+]
+
+---
+
+class: center, middle, inverse
+
+# Visualizing numerical data
+
+---
+
+## Number of variables involved
+
+- **Univariate** data analysis: distribution of single variable
+- **Bivariate** data analysis: relationship between two variables
+- **Multivariate** data analysis: relationship between many variables at once, usually focusing on the relationship between two while conditioning for others
+
+---
+
+## Types of variables
+
+&lt;img src="figures//02-types-of-variables.png" width="100%" /&gt;
+
+.footnote[
+
+In this course, I use the terms _variable_, _attribute_, and _feature_ synonymously.
+
+]
+
+---
+
+## IBM HR employee attrition &amp; performance dataset
+
+Artificial dataset from the [IBM Watson Analytics Lab](https://www.ibm.com/communities/analytics/watson-analytics-blog/hr-employee-attrition/) about factors that lead to employee attrition.
+
+
+```r
+data(attrition, package = "modeldata")
+attrition &lt;- as_tibble(attrition)
+glimpse(attrition)
+```
+
+```
+## Rows: 1,470
+## Columns: 31
+## $ Age                      &lt;int&gt; 41, 49, 37, 33, 27, 32, 59, 30, 38, 36, 35, 29, 31, 34,~
+## $ Attrition                &lt;fct&gt; Yes, No, Yes, No, No, No, No, No, No, No, No, No, No, N~
+## $ BusinessTravel           &lt;fct&gt; Travel_Rarely, Travel_Frequently, Travel_Rarely, Travel~
+## $ DailyRate                &lt;int&gt; 1102, 279, 1373, 1392, 591, 1005, 1324, 1358, 216, 1299~
+## $ Department               &lt;fct&gt; Sales, Research_Development, Research_Development, Rese~
+## $ DistanceFromHome         &lt;int&gt; 1, 8, 2, 3, 2, 2, 3, 24, 23, 27, 16, 15, 26, 19, 24, 21~
+## $ Education                &lt;ord&gt; College, Below_College, College, Master, Below_College,~
+## $ EducationField           &lt;fct&gt; Life_Sciences, Life_Sciences, Other, Life_Sciences, Med~
+## $ EnvironmentSatisfaction  &lt;ord&gt; Medium, High, Very_High, Very_High, Low, Very_High, Hig~
+## $ Gender                   &lt;fct&gt; Female, Male, Male, Female, Male, Male, Female, Male, M~
+## $ HourlyRate               &lt;int&gt; 94, 61, 92, 56, 40, 79, 81, 67, 44, 94, 84, 49, 31, 93,~
+## $ JobInvolvement           &lt;ord&gt; High, Medium, Medium, High, High, High, Very_High, High~
+## $ JobLevel                 &lt;int&gt; 2, 2, 1, 1, 1, 1, 1, 1, 3, 2, 1, 2, 1, 1, 1, 3, 1, 1, 4~
+## $ JobRole                  &lt;fct&gt; Sales_Executive, Research_Scientist, Laboratory_Technic~
+## $ JobSatisfaction          &lt;ord&gt; Very_High, Medium, High, High, Medium, Very_High, Low, ~
+## $ MaritalStatus            &lt;fct&gt; Single, Married, Single, Married, Married, Single, Marr~
+## $ MonthlyIncome            &lt;int&gt; 5993, 5130, 2090, 2909, 3468, 3068, 2670, 2693, 9526, 5~
+## $ MonthlyRate              &lt;int&gt; 19479, 24907, 2396, 23159, 16632, 11864, 9964, 13335, 8~
+## $ NumCompaniesWorked       &lt;int&gt; 8, 1, 6, 1, 9, 0, 4, 1, 0, 6, 0, 0, 1, 0, 5, 1, 0, 1, 2~
+## $ OverTime                 &lt;fct&gt; Yes, No, Yes, Yes, No, No, Yes, No, No, No, No, Yes, No~
+## $ PercentSalaryHike        &lt;int&gt; 11, 23, 15, 11, 12, 13, 20, 22, 21, 13, 13, 12, 17, 11,~
+## $ PerformanceRating        &lt;ord&gt; Excellent, Outstanding, Excellent, Excellent, Excellent~
+## $ RelationshipSatisfaction &lt;ord&gt; Low, Very_High, Medium, High, Very_High, High, Low, Med~
+## $ StockOptionLevel         &lt;int&gt; 0, 1, 0, 0, 1, 0, 3, 1, 0, 2, 1, 0, 1, 1, 0, 1, 2, 2, 0~
+## $ TotalWorkingYears        &lt;int&gt; 8, 10, 7, 8, 6, 8, 12, 1, 10, 17, 6, 10, 5, 3, 6, 10, 7~
+## $ TrainingTimesLastYear    &lt;int&gt; 0, 3, 3, 3, 3, 2, 3, 2, 2, 3, 5, 3, 1, 2, 4, 1, 5, 2, 3~
+## $ WorkLifeBalance          &lt;ord&gt; Bad, Better, Better, Better, Better, Good, Good, Better~
+## $ YearsAtCompany           &lt;int&gt; 6, 10, 0, 8, 2, 7, 1, 1, 9, 7, 5, 9, 5, 2, 4, 10, 6, 1,~
+## $ YearsInCurrentRole       &lt;int&gt; 4, 7, 0, 7, 2, 7, 0, 0, 7, 7, 4, 5, 2, 2, 2, 9, 2, 0, 8~
+## $ YearsSinceLastPromotion  &lt;int&gt; 0, 1, 0, 3, 2, 3, 0, 0, 1, 7, 0, 0, 4, 1, 0, 8, 0, 0, 3~
+## $ YearsWithCurrManager     &lt;int&gt; 5, 7, 0, 0, 2, 6, 0, 0, 8, 7, 3, 8, 3, 2, 3, 8, 5, 0, 7~
+```
+
+---
+
+## Variable types...
+
+...for a selection of columns:
+
+
+```r
+attrition %&gt;%
+  select(Age, Attrition, Gender, BusinessTravel, EducationField, JobLevel) %&gt;%
+  glimpse()
+```
+
+```
+## Rows: 1,470
+## Columns: 6
+## $ Age            &lt;int&gt; 41, 49, 37, 33, 27, 32, 59, 30, 38, 36, 35, 29, 31, 34, 28, 29, 3~
+## $ Attrition      &lt;fct&gt; Yes, No, Yes, No, No, No, No, No, No, No, No, No, No, No, Yes, No~
+## $ Gender         &lt;fct&gt; Female, Male, Male, Female, Male, Male, Female, Male, Male, Male,~
+## $ BusinessTravel &lt;fct&gt; Travel_Rarely, Travel_Frequently, Travel_Rarely, Travel_Frequentl~
+## $ EducationField &lt;fct&gt; Life_Sciences, Life_Sciences, Other, Life_Sciences, Medical, Life~
+## $ JobLevel       &lt;int&gt; 2, 2, 1, 1, 1, 1, 1, 1, 3, 2, 1, 2, 1, 1, 1, 3, 1, 1, 4, 1, 2, 1,~
+```
+
+Variable | Type
+:------- | :-------
+`Age`    | numerical, discrete (here!)
+`Attrition`    | categorical, binominal
+`Gender`    | categorical, binominal (here!)
+`BusinessTravel`    | categorical, ordinal (frequently &gt; rarely &gt; non)
+`EducationField`    | categorical, multinominal (human resources, life sciences, marketing, etc.)
+`JobLevel`    | categorical, ordinal
+
+---
+
+## Describing shapes of numerical distributions
+
+- **shape**:
+  * **skewness**: left-skewed, right-skewed, symmetric
+  * **modality**: unimodal, bimodal, multimodal, uniform
+- **center**: mean (`mean()`), median (`median()`), mode (useful rather for categorical data)
+- **spread**: range (`range()`), standard deviation (`sd()`), inter-quartile range (`IQR()`)
+- unusual observations, i.e.,  **outliers**
+
+---
+
+## Histogram
+
+
+```r
+ggplot(attrition, aes(x = MonthlyIncome)) + 
+  geom_histogram()
+```
+
+```
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+```
+
+&lt;img src="figures/_gen/02/histo-1.png" width="425.196850393701" /&gt;
+
+---
+
+## Binwidth of histograms
+
+.panelset[
+
+.panel[.panel-name[`binwidth = 100`]
+
+
+```r
+ggplot(attrition, aes(x = MonthlyIncome)) + 
+  geom_histogram(binwidth = 100)
+```
+
+&lt;img src="figures/_gen/02/histo-1-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[.panel-name[`binwidth = 1000`]
+
+
+```r
+ggplot(attrition, aes(x = MonthlyIncome)) + 
+  geom_histogram(binwidth = 1000)
+```
+
+&lt;img src="figures/_gen/02/histo-2-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[.panel-name[`binwidth = 5000`]
+
+
+```r
+ggplot(attrition, aes(x = MonthlyIncome)) + 
+  geom_histogram(binwidth = 5000)
+```
+
+&lt;img src="figures/_gen/02/histo-3-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[.panel-name[`nbins = 15`]
+
+
+```r
+ggplot(attrition, aes(x = MonthlyIncome)) + 
+  geom_histogram(bins = 15)
+```
+
+&lt;img src="figures/_gen/02/histo-3a-1.png" width="425.196850393701" /&gt;
+
+]
+
+]
+
+---
+
+## Customizing histograms
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/histo-4-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+
+```r
+ggplot(attrition, aes(x = MonthlyIncome)) + 
+  geom_histogram(binwidth = 1000) +
+  labs(
+    x = "Monthly income (USD)",
+    y = "Frequency",
+    title = "Frequency of employee income"
+  )
+```
+
+]
+
+]
+
+---
+
+## Fill with a categorical variable
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/histo-5-1.png" width="708.661417322835" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+
+```r
+ggplot(
+  attrition, 
+  aes(
+    x = MonthlyIncome, 
+*   fill = Department
+  )
+) + 
+  geom_histogram(
+    binwidth = 1000, 
+*   alpha = 0.7
+  ) +
+  labs(
+    x = "Monthly income (USD)",
+    y = "Frequency",
+    title = "Frequency of employee income"
+  )
+```
+
+]
+
+]
+
+---
+
+## Facet with a categorical variable
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/histo-6-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+
+```r
+ggplot(
+  attrition, 
+  aes(
+    x = MonthlyIncome
+  )
+) + 
+  geom_histogram(
+    binwidth = 1000
+  ) +
+  labs(
+    x = "Monthly income (USD)",
+    y = "Frequency",
+    title = "Frequency of employee income"
+  ) +
+* facet_wrap(~ Department, nrow = 3)
+```
+
+]
+
+]
+
+---
+
+## Density plot
+
+.pull-left[
+
+
+```r
+ggplot(attrition, aes(x = MonthlyIncome)) + 
+  geom_density()
+```
+
+&lt;img src="figures/_gen/02/dens-1.png" width="425.196850393701" /&gt;
+
+]
+
+--
+
+.pull-right[
+
+A density curve is like a smoothed representation of a histogram.
+
+&lt;img src="figures/_gen/02/densh-1.png" width="425.196850393701" /&gt;
+
+]
+
+---
+
+## Adjusting the bandwith to control smoothness
+
+.panelset[
+
+.panel[.panel-name[`adjust = 0.2`]
+
+
+```r
+ggplot(attrition, aes(x = MonthlyIncome)) + 
+  geom_density(adjust = 0.2)
+```
+
+&lt;img src="figures/_gen/02/dens-1-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[.panel-name[`adjust = 1` (default)]
+
+
+```r
+ggplot(attrition, aes(x = MonthlyIncome)) + 
+  geom_density(adjust = 1)
+```
+
+&lt;img src="figures/_gen/02/dens-2-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[.panel-name[`adjust = 2`]
+
+
+```r
+ggplot(attrition, aes(x = MonthlyIncome)) + 
+  geom_density(adjust = 2)
+```
+
+&lt;img src="figures/_gen/02/dens-3-1.png" width="425.196850393701" /&gt;
+
+]
+
+]
+
+---
+
+## Boxplot
+
+
+```r
+ggplot(attrition, aes(x = MonthlyIncome)) + 
+  geom_boxplot()
+```
+
+&lt;img src="figures/_gen/02/box-1.png" width="425.196850393701" /&gt;
+
+--
+
+The text on the y-axis isn't informative at all. Let's remove it.
+
+---
+
+## Customizing boxplots
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/box-1-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+
+```r
+ggplot(attrition, aes(x = MonthlyIncome)) + 
+  geom_boxplot() +
+  labs(
+    x = "Monthly income (USD)",
+*   y = NULL,
+    title = "Employee income"
+  ) +
+* theme(axis.text.y = element_blank()) +
+* theme(axis.ticks.y = element_blank())
+```
+
+]
+
+]
+
+---
+
+## Adding a categorical variable
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/box-2-1.png" width="576" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+
+```r
+ggplot(attrition, aes(
+  x = MonthlyIncome, 
+* y = Education
+)
+) + 
+  geom_boxplot() +
+  labs(
+    x = "Monthly income (USD)",
+    y = "Education",
+    title = "Employee income",
+    subtitle = "By education level"
+  )
+```
+
+]
+
+]
+
+---
+
+## Violin plots
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/violin-1.png" width="576" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+
+```r
+ggplot(attrition, aes(
+  x = MonthlyIncome, 
+  y = Education 
+)
+) + 
+* geom_violin() +
+  labs(
+    x = "Monthly income (USD)",
+    y = "Education",
+    title = "Employee income",
+    subtitle = "By education level"
+  )
+```
+
+]
+
+]
+
+---
+
+## Ridgeline plots
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+
+```
+## Picking joint bandwidth of 1240
+```
+
+&lt;img src="figures/_gen/02/ridgeline-1.png" width="576" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+
+```r
+ggplot(attrition, aes(
+  x = MonthlyIncome, 
+  y = Education 
+)
+) + 
+* ggridges::geom_density_ridges() +
+  labs(
+    x = "Monthly income (USD)",
+    y = "Education",
+    title = "Employee income",
+    subtitle = "By education level"
+  )
+```
+
+]
+
+]
+
+---
+
+## Scatterplot
+
+
+```r
+ggplot(gapminder, aes(x = gdpPercap, y = lifeExp)) + 
+  geom_point()
+```
+
+&lt;img src="figures/_gen/02/hex-1-1.png" width="425.196850393701" /&gt;
+
+There are a lot of overlapping points, which makes understanding of data density difficult.
+
+---
+
+## Hex plot
+
+
+```r
+ggplot(gapminder, aes(x = gdpPercap, y = lifeExp)) + 
+  geom_hex()
+```
+
+&lt;img src="figures/_gen/02/hex-2-1.png" width="576" /&gt;
+
+---
+
+## Hex plot
+
+
+```r
+ggplot(gapminder %&gt;% filter(gdpPercap &lt; 50000), 
+       aes(x = gdpPercap, y = lifeExp)) + 
+  geom_hex()
+```
+
+&lt;img src="figures/_gen/02/hex-3-1.png" width="576" /&gt;
+
+---
+
+class: center, middle, inverse
+
+# Visualizing categorical data
+
+---
+
+## Bar plot
+
+
+```r
+ggplot(attrition, aes(x = Education)) +
+  geom_bar()
+```
+
+&lt;img src="figures/_gen/02/bar-1.png" width="566.929133858268" /&gt;
+
+---
+
+## Segmented bar plot (absolute frequencies)
+
+
+```r
+ggplot(attrition, aes(x = Education,
+*                     fill = JobSatisfaction)) +
+  geom_bar()
+```
+
+&lt;img src="figures/_gen/02/bar-1-1.png" width="680.314960629921" /&gt;
+
+---
+
+## Segmented bar plot (relative frequencies)
+
+
+```r
+ggplot(attrition, aes(x = Education, fill = JobSatisfaction)) + 
+  geom_bar(position = "fill")
+```
+
+&lt;img src="figures/_gen/02/bar-2-1.png" width="680.314960629921" /&gt;
+
+---
+
+.content-box-yellow[
+
+Which of the two bar plot variants is a more effective visualization for representing the relationship between education and job satisfaction?
+
+]
+
+.pull-left[
+
+&lt;img src="figures/_gen/02/unnamed-chunk-20-1.png" width="680.314960629921" /&gt;
+
+]
+
+.pull-right[
+
+&lt;img src="figures/_gen/02/unnamed-chunk-21-1.png" width="680.314960629921" /&gt;
+
+]
+
+---
+
+## Customizing bar plots
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/bar-3-1.png" width="737.007874015748" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+
+```r
+ggplot(attrition, aes(y = Education, fill = JobSatisfaction)) + 
+  scale_x_continuous(labels = scales::percent) +
+  geom_bar(position = "fill") +
+  labs(
+    x = "Proportion",
+    y = "Education",
+    title = "Relationship between education level and job satisfaction"
+  ) 
+```
+
+]
+
+]
+
+---
+
+class: center, middle, inverse
+
+## Advanced ggplot2 &amp; extensions
+
+---
+
+## Extracting plot details
+
+One of the main reasons why `ggplot2` is easy to use, is that it makes the required computations for a lot of geoms by itself.
+For example, the boxplot geom automatically calculates the values for the 5-point summary and identifies possible outliers.
+
+.pull-left[
+
+
+```r
+p &lt;- ggplot(iris, aes(Species, Sepal.Length)) +
+   geom_boxplot()
+p
+```
+
+&lt;img src="figures/_gen/02/extract-plot-details-1-1.png" width="425.196850393701" /&gt;
+
+]
+
+.pull-right[
+
+
+```r
+class(p)
+```
+
+```
+## [1] "gg"     "ggplot"
+```
+
+&amp;nbsp;
+
+.content-box-yellow[&amp;#x1F914; _"I need to depict the summary statistics of the boxplot for
+my final project report. How can I extract them?"_]
+
+]
+
+???
+
+- ggplot automatically calculates the 5-point summary for a boxplot
+  - median, 1. and 3. quartile, whisker lengths and outliers
+
+---
+
+## Extracting plot details
+
+Whenever a ggplot object is "printed" to the screen,
+the function `ggplot_build()` is invoked internally to render the plot.
+
+
+```r
+gr &lt;- ggplot_build(p) # execute all necessary steps to render the plot
+class(gr)
+```
+
+```
+## [1] "ggplot_built"
+```
+
+```r
+names(gr)
+```
+
+```
+## [1] "data"   "layout" "plot"
+```
+
+The three components of a `ggplot_built` object are:
+
+- `data`: details for each plot layer, e.g. the 5-point summary of a boxplot.
+- `layout`: axis information, e.g. breaks, ranges and labels
+- `plot`: the rendered plot itself
+
+---
+
+## Extracting plot details
+
+We are interested in the 5-point summary of the 3 boxplots,
+which were automatically calculated by `ggplot2`.
+We extract the information from the `data` element of `gr`.
+
+
+```r
+gr$data[[1]] # or: layer_data(p, i = 1)
+```
+
+```
+##   ymin lower middle upper ymax outliers notchupper notchlower x flipped_aes PANEL group
+## 1  4.3 4.800    5.0   5.2  5.8            5.089378   4.910622 1       FALSE     1     1
+## 2  4.9 5.600    5.9   6.3  7.0            6.056412   5.743588 2       FALSE     1     2
+## 3  5.6 6.225    6.5   6.9  7.9      4.9   6.650826   6.349174 3       FALSE     1     3
+##   ymin_final ymax_final  xmin  xmax xid newx new_width weight colour  fill size alpha
+## 1        4.3        5.8 0.625 1.375   1    1      0.75      1 grey20 white  0.5    NA
+## 2        4.9        7.0 1.625 2.375   2    2      0.75      1 grey20 white  0.5    NA
+## 3        4.9        7.9 2.625 3.375   3    3      0.75      1 grey20 white  0.5    NA
+##   shape linetype
+## 1    19    solid
+## 2    19    solid
+## 3    19    solid
+```
+
+
+
+Here, each row contains data for one of the three boxes. The first five columns are:
+
+- `ymin`: lower end of lower whisker (= median - 1.5 * IQR)
+- `lower`: lower end of box (= first quartile)
+- `middle`: horizontal line within box (= median)
+- `upper`: upper end of box (= third quartile) 
+- `ymax`: upper end of upper whisker (= median + 1.5 * IQR)
+
+
+---
+
+## Maps &amp;#x1F5FA;
+
+Example **choropleth maps** showing the poll results of the 2016 United States Presidential Elections:
+
+&lt;img src="figures//02-usa_map.png" width="625px" /&gt;
+
+.footnote[Figure source: Kieran Healy. ["Data Visualization. A practical introduction"](http://socviz.co/).
+Princeton University Press, 2018.]
+
+---
+
+## Maps &amp;#x1F5FA;
+
+Draw a map of the USA:
+
+
+```r
+usa &lt;- map_data("state")
+str(usa)
+```
+
+```
+## 'data.frame':	15537 obs. of  6 variables:
+##  $ long     : num  -87.5 -87.5 -87.5 -87.5 -87.6 ...
+##  $ lat      : num  30.4 30.4 30.4 30.3 30.3 ...
+##  $ group    : num  1 1 1 1 1 1 1 1 1 1 ...
+##  $ order    : int  1 2 3 4 5 6 7 8 9 10 ...
+##  $ region   : chr  "alabama" "alabama" "alabama" "alabama" ...
+##  $ subregion: chr  NA NA NA NA ...
+```
+
+--
+
+.pull-left[
+
+
+```r
+ggplot(usa, aes(x = long, y = lat,
+                group = group)) +
+* geom_polygon(color = "black", fill = NA) +
+  coord_map() +
+  theme_void()
+```
+
+]
+
+.pull-right[
+&lt;img src="figures/_gen/02/unnamed-chunk-25-1.png" width="425.196850393701" /&gt;
+
+]
+
+---
+
+## Interactive graphs with ggiraph
+
+An interactive map that shows the 2016 US presidential election results.
+Hovering over a state lets a tooltip pop up, showing the percentages of
+each candidate of the Democratic and Republican parties.
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;iframe src="figures/02-ggiraph_usa-2016-1.html" width="80%" height="400px"&gt;&lt;/iframe&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+
+```r
+library(ggiraph)
+p &lt;- usa %&gt;% rename(state = region) %&gt;%
+  mutate(state = stringr::str_to_title(state)) %&gt;%
+  mutate(state = if_else(state == "District Of Columbia", "District of Columbia", state)) %&gt;%
+  left_join(socviz::election %&gt;% select(state, winner, pct_clinton, pct_trump), by = "state") %&gt;%
+  mutate(tooltip = paste0(winner, " won ", state, "\nClinton: ", pct_clinton, "%\nTrump: ", pct_trump, "%")) %&gt;%
+  ggplot(aes(long, lat, group = group)) +
+  geom_polygon_interactive(aes(fill = winner, data_id = state, tooltip = tooltip), color = "gray90") +
+  scale_fill_manual(values = c("royalblue3", "firebrick2")) +
+  labs(fill = "Winning\ncandidate") +
+  coord_map() +
+  theme_void(base_family = "Fira Sans", base_size = 18)
+girafe(ggobj = p)
+```
+
+
+
+]
+
+]
+
+???
+
+maybe useful: https://github.com/davidgohel/budapestbi2017/blob/master/docs/ggiraph/slides.Rmd
+
+---
+
+## Draw maps from shape files
+
+The `maps` package contains map data only for a handful of countries,
+including USA, France, Italy and New Zealand, as well as 2 world maps.
+
+Generally, **shapefiles** are more flexible in accessing geographic and political boundaries
+than built-in maps. A shapefile is **geospatial vector data format** for geographic
+information system (GIS) software.
+
+Shapefiles actually consist of several sub-files, see e.g. [Wikipedia](https://en.wikipedia.org/wiki/Shapefile).
+
+---
+
+## Save plots &amp;#x1F4BE;
+
+
+```r
+ggsave(
+  filename = "filename.png", # or: pdf, svg, jpeg, eps, tiff, ...
+  plot = p, # if not specified saves plot that was created last
+  width = 8, height = 6,
+  units = "cm", 
+  dpi = 300 # specifies resolution (dots per inch) 
+)
+```
+
+---
+
+class: middle, center, inverse
+
+# Extensions &amp; Alternatives
+
+---
+
+background-image: url("figures/02-gg-ext.png")
+background-size: contain
+
+
+## [https://exts.ggplot2.tidyverse.org/gallery](https://exts.ggplot2.tidyverse.org/gallery)
+
+---
+
+## ggiraph
+
+[`ggiraph`](https://davidgohel.github.io/ggiraph/): htmlwidget to extend `ggplot2` with `D3.js`
+to generate **animated** graphs
+
+.pull-left70[
+
+&lt;img src="figures//02-ggiraph_usa-2016.png" width="100%" /&gt;
+
+]
+
+.pull-right30[
+
+&lt;img src="figures//02-ggiraph.png" width="100%" /&gt;
+
+]
+
+---
+
+## plotly
+
+[`plotly`](https://plot.ly/r): interface to eponymous Javascript library to
+create interactive graphs.
+The comfort function `ggplotly()` converts a `ggplot2` plot into a `plotly`
+graph
+
+.pull-left70[
+
+&lt;div&gt;
+&lt;iframe src="https://plot.ly/~RPlotBot/4645.embed" id="igraph" scrolling="no" seamless="seamless" width="507px" height="380px" frameborder="0"&gt; &lt;/iframe&gt;
+&lt;/div&gt;
+
+]
+
+.pull-right30[
+
+&lt;img src="figures//02-plotly.png" width="100%" /&gt;
+
+]
+
+
+---
+
+## gganimate
+
+[`gganimate`](https://github.com/thomasp85/gganimate): animated `ggplot2` plots
+
+![](figures//02-gapminder.gif)&lt;!-- --&gt;
+
+---
+
+## ggforce
+
+[`ggforce`](https://ggforce.data-imaginist.com/): various additional extensions to `ggplot2`
+
+.pull-left70[
+
+
+```r
+library(ggforce)
+ggplot(iris, aes(Sepal.Length, Petal.Width)) +
+  coord_cartesian(xlim = c(3.5,8.5), ylim = c(-0.25,2.75),
+                  expand = F) +
+  geom_point() +
+  geom_mark_hull(aes(fill = Species, label = Species),
+                 concavity = 3)
+```
+
+&lt;img src="figures/_gen/02/ggforce-1.png" width="651.968503937008" /&gt;
+
+]
+
+.pull-right30[
+
+&lt;img src="figures//02-ggforce.png" width="100%" /&gt;
+
+]
+
+---
+
+## patchwork
+
+[`patchwork`](https://ggforce.data-imaginist.com/): combine multiple different ggplot2 graphs into a composite plot
+
+.pull-left70[
+
+&lt;img src="figures//02-patchwork-example.png" width="100%" /&gt;
+
+]
+
+.pull-right30[
+
+&lt;img src="figures//02-patchwork.png" width="100%" /&gt;
+
+]
+
+---
+
+## ggraph
+
+[`ggraph`](https://cran.r-project.org/web/packages/ggraph/index.html): graph and network visualizations&lt;sup&gt;1&lt;/sup&gt;
+
+.pull-left[
+&lt;img src="figures//02-ggraph_1.gif" width="300px" /&gt;&lt;img src="figures//02-ggraph_2.png" width="300px" /&gt;
+]
+
+.pull-right[
+&lt;img src="figures//02-ggraph_3.png" width="300px" /&gt;&lt;img src="figures//02-ggraph_4.png" width="300px" /&gt;
+
+]
+
+---
+
+## ggalluvial
+
+`ggalluvial`: graphs for multi-dimensional categorical count data or repeated
+categorical measurement data&lt;sup&gt;1&lt;/sup&gt; (Sankey diagrams)
+
+.footnote[[1] URL: https://cran.r-project.org/web/packages/ggalluvial/index.html]
+
+.pull-left[
+&lt;img src="figures//02-ggaluvial_1.png" width="100%" /&gt;
+]
+
+.pull-right[
+&lt;img src="figures//02-ggaluvial_2.png" width="100%" /&gt;
+]
+
+???
+
+&lt;!-- ## `ggplot2` extensions --&gt;
+
+&lt;!-- [`ggthemeassist`](https://github.com/calligross/ggthemeassist): WYSIWYG editor for `ggplot2` theme elements as Shiny app and RStudio addin. --&gt;
+
+&lt;!-- &lt;iframe width="622" height="350" src="https://www.youtube.com/embed/t8srbECpWYg?rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen&gt;&lt;/iframe&gt; --&gt;
+
+&lt;!-- --- --&gt;
+
+---
+
+background-image: url("figures/02-htmlwidgets.png")
+background-size: contain
+
+## Interactive graphs: [gallery.htmlwidgets.org](http://gallery.htmlwidgets.org/)
+
+---
+
+## r2d3
+
+.pull-left70[
+
+[`r2d3`](https://rstudio.github.io/r2d3/): `R` interface to [D3](https://d3js.org/) Javascript library.
+
+&lt;img src="figures//02-r2d3_gallery.png" width="90%" /&gt;
+
+]
+
+.pull-right30[
+
+&lt;img src="figures//02-r2d3-hex.png" width="100%" /&gt;
+
+]
+
+---
+
+background-image: url("figures/02-ggplot2-abstraction-level.png")
+background-size: contain
+
+.footnote[[Kieran Healy. A Practical Introduction to Data Visualization with ggplot2 Workshop. rstudio::conf 2020.](https://github.com/rstudio-conf-2020/dataviz)]
+
+---
+
+exclude: true
+
+## Further materials
+
+.pull-left[
+
+- **Hadley Wickham. ["ggplot2 - Elegant Graphics for Data Analysis"](https://link.springer.com/book/10.1007%2F978-0-387-98141-3). Springer, 2016.**
+- Hadley Wickham, and Garrett Grolemund. ["R for Data Science"](http://r4ds.had.co.nz/). O'Reilly, 2017. Chapters:
+  - [Data Visualization](http://r4ds.had.co.nz/data-visualisation.html)
+  - [Graphics for communication](http://r4ds.had.co.nz/graphics-for-communication.html)
+- **Claus O. Wilke. ["Fundamentals of Data Visualization"](http://serialmentor.com/dataviz/). O'Reilly Media, 2018.**
+- **Kieran Healy. ["Data Visualization. A practical introduction"](http://socviz.co/). Princeton University Press, 2018.**
+- RStudio's [`ggplot2` cheat sheet](https://github.com/rstudio/cheatsheets/raw/master/data-visualization-2.1.pdf)
+- ["awesome" ggplot2](https://github.com/erikgahner/awesome-ggplot2): curated list of various ggplot2 resources
+
+]
+
+.pull-right[
+
+&lt;img src="figures//02-ggplot2_cover.jpg" width="33%" /&gt;&lt;img src="figures//02-healy_data_vis_cover.jpg" width="33%" /&gt;&lt;img src="figures//02-wilke_fundamentals_data_vis_cover.jpg" width="33%" /&gt;
+
+]
+
+???
+
+awesome ggplot2:
+
+- new geoms: ridgeline plots, wordclouds
+- additional themes
+- books and online courses
+- tutorials
+
+
+---
+
+
+## Session info
+
+
+```
+##  setting  value                       
+##  version  R version 4.0.4 (2021-02-15)
+##  os       Windows 10 x64              
+##  system   x86_64, mingw32             
+##  ui       RTerm                       
+##  language (EN)                        
+##  collate  English_United States.1252  
+##  ctype    English_United States.1252  
+##  tz       Europe/Berlin               
+##  date     2021-03-31
+```
+
+&lt;div style="font-size:80%;"&gt;
+
+.pull-left[
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; package &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; version &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; date &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; source &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; dplyr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.0.5 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-03-05 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.4) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; forcats &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.5.1 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-01-27 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; gapminder &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.3.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2017-10-31 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; ggforce &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.3.2 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-06-23 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.2) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; ggplot2 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 3.3.3 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-12-30 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; patchwork &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.1.1 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-12-17 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+]
+
+.pull-right[
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; package &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; version &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; date &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; source &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; purrr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.3.4 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-04-17 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.2) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; readr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.4.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-10-05 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; stringr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.4.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2019-02-10 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.2) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; tibble &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 3.1.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-02-25 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; tidyr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.1.3 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-03-03 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.4) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; tidyverse &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.3.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2019-11-21 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.2) &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+]
+
+&lt;/div&gt;
+
+---
+
+class: last-slide, center, bottom
+
+# Thank you! Questions?
+
+&amp;nbsp;
+
+.courtesy[&amp;#x1F4F7; Photo courtesy of Stefan Berger]
+
+&lt;!-- ??? --&gt;
+
+&lt;!-- - _"A picture is worth a thousand words."_ - English language-idiom --&gt;
+&lt;!-- - easier to comprehend than by looking at statistical summaries --&gt;
+&lt;!-- - for most humans it is quite difficult to extract the answers on questions about the data just from staring at large tables. --&gt;
+&lt;!-- - data visualization provides a powerful way to communicate a data-driven finding --&gt;
+&lt;!-- - sometimes it is so convincing that no follow-up analysis is required --&gt;
+&lt;!-- - many widely used data analysis tools were initiated by discoveries made via EDA --&gt;
+
+
+
+&lt;!-- --- --&gt;
+
+&lt;!-- background-image: url("figures/03-ggplot2/greatest-hits-6.png") --&gt;
+&lt;!-- background-size: contain --&gt;
+
+&lt;!-- .pull-left70[&amp;nbsp;] --&gt;
+&lt;!-- .pull-right30[.footnote[.content-box-gray[.font80[[Source](http://johnburnmurdoch.github.io/slides/r-ggplot/greatest-hits-6.png)]]]] --&gt;
+
+&lt;!-- ??? --&gt;
+
+&lt;!-- - relationship between the percentage of people with a degree (x-axis) and share of people who voted for leave (y-axis) --&gt;
+&lt;!-- - a point represents one single british area --&gt;
+&lt;!-- - size = population size;  --&gt;
+&lt;!-- - color separates English areas from Scottish areas --&gt;
+&lt;!-- - red points are non-scottish british areas; blue points are Scottish areas --&gt;
+&lt;!--   - dark red -&gt; London ; light red -&gt; rest of britain --&gt;
+&lt;!-- - the plot shows a clear general trend, highlighted by the regression lines: the higher the perc. of people with a degree in an area, the lower the vote percentage for leaving the EU --&gt;
+&lt;!-- - the general british trend applies also on scotland, but independently from the percentage of people with a degree, the share of EU-enemies is lower than in the rest of GB --&gt;
+&lt;!-- - also the slope of the regression line is less steep, indicating that this group is more homogeneous than the rest of the country --&gt;
+
+&lt;!-- --- --&gt;
+
+&lt;!-- class: middle --&gt;
+
+&lt;!-- ```{r harvard-corruption-human-dev, echo=FALSE, out.width="50%", fig.align='center'} --&gt;
+&lt;!-- knitr::include_graphics(file.path(fig_path, "02-harvard_ggplot2_tutorial.png")) --&gt;
+&lt;!-- ``` --&gt;
+
+&lt;!-- .pull-left70[&amp;nbsp;] --&gt;
+
+&lt;!-- .pull-right30[.footnote[.content-box-gray[.font80[[Source](https://tutorials.iq.harvard.edu/R/Rgraphics/Rgraphics.html)]]]] --&gt;
+
+
+&lt;!-- --- --&gt;
+
+&lt;!-- background-image: url("figures/03-ggplot2/ggplot2_switzerland_map.png") --&gt;
+&lt;!-- background-size: contain --&gt;
+
+&lt;!-- .pull-left70[&amp;nbsp;] --&gt;
+&lt;!-- .pull-right30[.footnote[.content-box-gray[.font80[[Source](https://timogrossenbacher.ch/2016/12/beautiful-thematic-maps-with-ggplot2-only/)]]]] --&gt;
+
+&lt;!-- --- --&gt;
+
+&lt;!-- background-image: url("figures/03-ggplot2/bbc_graphics.jpg") --&gt;
+&lt;!-- background-size: contain --&gt;
+
+&lt;!-- .pull-left70[&amp;nbsp;] --&gt;
+
+&lt;!-- .pull-right30[.footnote[.content-box-gray[.font80[[Source](https://bbc.github.io/rcookbook/)]]]] --&gt;
+
+&lt;!-- --- --&gt;
+
+&lt;!-- class: middle --&gt;
+
+&lt;!-- ## Disclaimer --&gt;
+
+&lt;!-- .content-box-red[ --&gt;
+
+&lt;!-- &amp;#x26A1; Beware that most of the following examples of graphics do not strictly adhere to [good graphical principles](https://graphicsprinciples.github.io/)  --&gt;
+&lt;!-- for quantitative scientists. --&gt;
+
+&lt;!-- They serve to illustrate how to use the API of ggplot2. --&gt;
+
+&lt;!-- Principles for effective visual communication and good practices of graph design  --&gt;
+&lt;!-- can be found under &lt;https://graphicsprinciples.github.io/&gt;. --&gt;
+
+&lt;!-- The book ["Fundamentals of Data Visualization"](https://serialmentor.com/dataviz/)  --&gt;
+&lt;!-- by Claus O. Wilke contains a comprehensive yet concise overview of various plot  --&gt;
+&lt;!-- types, tips on when to use them and also "dont's" for each visualization problem. --&gt;
+
+&lt;!-- [WTF Visualizations](https://viz.wtf/) is a blog on visualizations "that make no sense".   --&gt;
+
+&lt;!-- ] --&gt;
+
+&lt;!-- ??? --&gt;
+
+&lt;!-- != tutorial of good chart design --&gt;
+
+&lt;!-- --- --&gt;
+
+&lt;!-- ## `ggplot2` &amp;#x1F4C8; --&gt;
+
+&lt;!-- .footnote[[1] Leland Wilkinson. _The grammar of graphics._ Springer Science &amp; Business Media, 2006.] --&gt;
+
+&lt;!-- .pull-left70[ --&gt;
+
+&lt;!-- &gt; [`ggplot2`](https://ggplot2.tidyverse.org/index.html) is a package for **data visualization**. --&gt;
+
+&lt;!-- &amp;#x1F914; _"...but base R already includes inbuilt plotting capabilities. Why should we care about `ggplot2`?"_ --&gt;
+
+&lt;!-- - `ggplot2` is inspired by the **Grammar of Graphics**&lt;sup&gt;1&lt;/sup&gt; --&gt;
+&lt;!-- -  idea: **break the graph into components** and **handle each component individually** `\(\rightarrow\)` ensure versatility and control --&gt;
+&lt;!-- - a `ggplot2` chart is built by stacking a **series of layers** --&gt;
+&lt;!-- - advantage: build a **variety of different charts** with the same vocabulary `\(\rightarrow\)` code that is easier to read and write --&gt;
+
+&lt;!-- ] --&gt;
+
+&lt;!-- .pull-right30[ --&gt;
+
+&lt;!-- ```{r, echo=FALSE, out.width="100%"} --&gt;
+&lt;!-- knitr::include_graphics(file.path(fig_path, "02-hex-ggplot2.png")) --&gt;
+&lt;!-- ``` --&gt;
+
+&lt;!-- ] --&gt;
+
+
+&lt;!-- ??? --&gt;
+
+&lt;!-- - basic idea of gg: no matter whether you would like to draw a pie chart, a line chart,  --&gt;
+&lt;!-- a bar chart or a scatterplot, what you always do is create a **graphic** --&gt;
+&lt;!-- - but what is a graphic: a graphic can be decomposed into multiple layers --&gt;
+&lt;!-- - instead of having different "super"-functions for every possible chart type  --&gt;
+&lt;!-- like in base R, the idea of gg is to describe a large variety of different charts  --&gt;
+&lt;!-- with the same vocabulary --&gt;
+&lt;!-- - ggplot is a specific implementation of gg --&gt;
+&lt;!--   - goal: create informative and elegant graphs with relatively simple and readable code --&gt;
+&lt;!--   - part of the tidyverse -&gt; works exclusevly with data frames --&gt;
+&lt;!--   - requires tidy data frames --&gt;
+
+&lt;!-- versatility - Vielseitigkeit, Flexibilität --&gt;
+
+&lt;!-- umfangreich, intuitiv und flexibel --&gt;
+
+&lt;!-- &lt;!-- - default behaviour is carefully chosen to satisfy the great majority of cases and are aesthetically pleasing --&gt; --&gt;
+&lt;!-- - it is possible to create informative and elegant graphs with relatively simple and readable code --&gt;
+&lt;!-- - limitation: since ggplot is part of the tidyverse, it is very data frame centric, so it is designed to work exclusively with data tables -&gt; advantage: assuming that the data follows this format, it simplifies the code and learning the grammar  --&gt;
+
+&lt;!-- So far, we have covered some EDA approaches for _univariate_ data, e.g. histograms, qq-plots and boxplots. Now, learn more details and introduce some tools and summary statistics for paired data. We do this using the powerful `ggplot2` package. --&gt;
+
+&lt;!-- versatility - Vielseitigkeit, Flexibilität --&gt;
+
+&lt;!-- umfangreich, intuitiv und flexibel --&gt;
+
+&lt;!-- --- --&gt;
+
+
+
+
+
+
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": true,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

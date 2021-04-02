@@ -1,0 +1,2074 @@
+---
+title: "Linear models"
+subtitle: "Data Science with R &#183; Summer 2021"
+author: "Uli Niemann"
+session: "06"
+institute: "Knowledge Management & Discovery Lab"
+# date: "2016/12/12 (updated: `r Sys.Date()`)"
+output:
+  xaringan::moon_reader:
+    css: ["default", "assets/css/my-theme.css", "assets/css/my-fonts.css"]
+    seal: false # custom title slide
+    lib_dir: libs
+    nature:
+      # highlightStyle: solarized-light
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: true
+      ratio: "16:9"
+params:
+  url: "https://brain.cs.uni-magdeburg.de/kmd/DataSciR/"
+---
+
+```{r setup, include=FALSE}
+source("global-slide-settings.R", local = knitr::knit_global(), encoding = "UTF-8")
+
+library(tidyverse)
+library(tidymodels)
+
+theme_set(
+  theme_minimal(base_size = 18, base_family = "Fira Sans") +
+    theme(panel.grid.minor = element_blank()) +
+    theme(plot.title = element_text(size = rel(1.08))) +
+    theme(plot.subtitle = element_text(size = rel(1.02))) 
+)
+
+# directory of generated figures
+knitr::opts_chunk$set(fig.path = "figures/_gen/06/")
+# directory of included figures
+fig_path <- "figures/"
+
+xaringanExtra::use_panelset()
+xaringanExtra::use_tile_view()
+
+data(attrition, package = "modeldata")
+attrition <- as_tibble(attrition)
+```
+
+```{r title-slide, child="title-slide.Rmd"}
+```
+
+---
+
+
+## Bivariate relationships
+
+Example data: **father-son dataset** (1078 Measurements of the height of a father and his son.)
+
+.pull-left70[
+```{r load-father-son}
+library(tidyverse)
+father_son <- UsingR::father.son %>%
+  as_tibble() %>%
+  mutate(across(everything(), ~ . * 2.54)) # convert from inch to cm
+father_son
+```
+]
+
+.pull-right30[
+```{r father-son-pictogram, echo=FALSE, out.width="100%"}
+knitr::include_graphics(file.path("figures", "06-heights.png"))
+```
+]
+
+.content-box-yellow[
+
+_How can we summarize the relationship between the two variables `fheight` and `sheight`?_
+
+]
+
+???
+
+- series of three meetings where we discuss regression and classification concepts and algorithms
+- today, mother of all regression methods, linear regression
+- lin. Reg.: very popular methods in a lot domains, medical research 
+  - exists for a long time, and relatively simple, but: 
+  - a lot of modern methods build upon linear regression -> generalization or extensions of linear regression
+  - understanding how to use lin. regression is a good starting point in order to be capable of using more advanced techniques
+- LR can be used to assess the relationship between two or more variables
+- here, we have: ca. 1000 height measurements of fathers and their sons
+
+---
+
+## Summary statistics
+
+We could describe the relationship between `fheight` and `sheight` with **mean** and **standard deviation**:
+
+```{r father-son-summary-stats}
+father_son %>% 
+  summarize(
+    avg_height_father = mean(fheight), 
+    sd_height_father = sd(fheight), 
+    avg_height_son = mean(sheight), 
+    sd_height_son = sd(sheight)
+  )
+```
+
+.content-box-yellow[
+
+Are mean and standard deviation sufficient?
+
+]
+
+---
+
+## Visualizing bivariate relationships with...
+
+.panelset[
+.panel[.panel-name[...scatterplots]
+
+```{r father-son-scatter}
+ggplot(father_son, aes(x = fheight, y = sheight)) + 
+  geom_point() +
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+]
+.panel[.panel-name[...boxplots]
+
+.pull-left60[
+
+`ggplot2::cut_interval()`: convert numerical vector into factor by discretizing the values into `n` groups of equal range 
+
+```{r father-son-boxplot, eval = FALSE}
+father_son %>% 
+  mutate(fheight = cut_interval(fheight, n = 5)) %>%
+  ggplot(aes(x = fheight, y = sheight)) + 
+  geom_boxplot() +
+  labs(x = "Father's height [cm]", 
+       y = "Son's height [cm]")
+```
+
+]
+
+.pull-right40[
+
+```{r bla, ref.label="father-son-boxplot", echo = FALSE}
+```
+
+]
+
+.content-box-green[
+We observe that generally taller fathers have taller sons.
+]
+
+]
+
+]
+
+???
+
+- conveniently, we only have 2 variables here, so we can visualize them easily
+
+---
+
+## Characterizing bivariate relationships
+
+```{r bivariate-relationships-theme, include=FALSE}
+theme_chunk <- theme_get() +
+  theme(panel.grid = element_blank()) +
+  theme(axis.title = element_blank()) +
+  theme(axis.ticks = element_blank()) +
+  theme(axis.text = element_blank())
+```
+
+
+```{r bivariate-relationships, eval=FALSE, include = FALSE}
+df <- tibble(
+  x = seq(-5, 5, length.out = 250),
+  y_lin_pos = 50 + x,
+  y_lin_neg = 50 - x,
+  y_qua = x^2,
+  y_e = 1 - exp(-2*x)
+)
+
+width <- 3
+height <- 3
+# Linear form
+ggplot(df, aes(x,y_lin_pos)) +
+  geom_jitter(width = 0.3) +
+  theme_chunk
+ggsave("Figures/01_linear_form.png", width = width, height = height)
+
+# Quadratic form
+ggplot(df, aes(x,y_qua)) +
+  geom_jitter(width = 0.3) +
+  theme_chunk
+ggsave("Figures/02_quadratic_form.png", width = width, height = height)
+
+# Non-linear form
+ggplot(df, aes(x,y_e)) +
+  geom_jitter(width = 0.05) +
+  theme_chunk
+ggsave("Figures/03_nonlinear_form.png", width = width, height = height)
+
+# Positive direction
+ggplot(df, aes(x,y_lin_pos)) +
+  geom_jitter(width = 0.3) +
+  theme_chunk
+ggsave("Figures/04_positive_direction.png", width = width, height = height)
+
+# Negative direction
+ggplot(df, aes(x,y_lin_neg)) +
+  geom_jitter(width = 0.3) +
+  theme_chunk
+ggsave("Figures/05_negative_direction.png", width = width, height = height)
+  
+# High strength
+ggplot(df, aes(x,y_lin_pos)) +
+  geom_jitter(width = 0.1) +
+  theme_chunk
+ggsave("Figures/06_high_strength.png", width = width, height = height)
+
+# Low strength
+ggplot(df, aes(x,y_lin_pos)) +
+  geom_jitter(width = 10) +
+  theme_chunk
+ggsave("Figures/07_low_strength.png", width = width, height = height)
+
+# Outlier
+ggplot(df, aes(x,y_lin_pos)) +
+  geom_jitter(width = 0.5) +
+  geom_point(data = tibble(x = c(-4.8, -4.5, -4, 2, 4.5, 5),
+                           y_lin_pos = c(0, 20, 10, 60, 18, 100))) +
+  theme_chunk
+ggsave("Figures/08_with_outliers.png", width = width, height = height)
+
+# Outlier
+ggplot(df, aes(x,y_lin_pos)) +
+  geom_jitter(width = 0.5) +
+  geom_point(data = tibble(x = c(-4.8, -4.5, -4, 2, 4.5, 5),
+                           y_lin_pos = c(0, 20, 10, 60, 18, 100)),
+             color = "transparent") +
+  theme_chunk
+ggsave("Figures/09_no_outliers.png", width = width, height = height)
+```
+
+```{r bivariate-relationships-fig, echo=FALSE, out.height="100%", eval=FALSE}
+knitr::include_graphics(file.path("figures", "06-bivariate_relationships.png"))
+```
+
+
+.panelset[
+.panel[.panel-name[Linearity]
+
+```{r bivariate-rel-linearity, out.width="90%", echo=FALSE}
+knitr::include_graphics(file.path("figures", "06-bivariate-rel-linearity.png"))
+```
+
+]
+
+.panel[.panel-name[Direction]
+
+```{r bivariate-rel-direction, out.width="60%", echo=FALSE}
+knitr::include_graphics(file.path("figures", "06-bivariate-rel-direction.png"))
+```
+
+]
+
+.panel[.panel-name[Strength]
+
+```{r bivariate-rel-strength, out.width="60%", echo=FALSE}
+knitr::include_graphics(file.path("figures", "06-bivariate-rel-strength.png"))
+```
+
+]
+
+.panel[.panel-name[Outliers]
+
+```{r bivariate-rel-outliers, out.width="60%", echo=FALSE}
+knitr::include_graphics(file.path("figures", "06-bivariate-rel-outliers.png"))
+```
+
+]
+
+]
+
+---
+
+## Examples of bivariate relationships examples
+
+.panelset[
+.panel[.panel-name[`bdims`]
+
+```{r bdims-scatter}
+library(openintro)
+ggplot(bdims, aes(hgt, wgt)) + 
+  geom_point() +
+  labs(x = "Height [cm]", y = "Weight [kg]",
+       title = "Body measurements of 507 people",
+       caption = "Source: bdims data | R package openintro")
+```
+
+]
+
+.panel[.panel-name[`mammals`]
+
+```{r mammals-scatter}
+ggplot(mammals, aes(x = body_wt, y = brain_wt)) + 
+  geom_point() +
+  labs(x = "Body weight [kg]", y = "Brain weight [kg]",
+       title = "Measurements of 62 species of mammals",
+       caption = "Source: mammals dataset | R package openintro")
+```
+
+]
+
+.panel[.panel-name[`mammals` (without outliers)]
+
+```{r smaller-mammals-scatter}
+mammals %>% 
+  filter(body_wt < 100, brain_wt < 100) %>% #<<
+  ggplot(aes(x = body_wt, y = brain_wt)) + 
+  geom_point() +
+  labs(x = "Body weight [kg]", y = "Brain weight [kg]",
+       title = "Measurements of 39 mammals with\nbody_wt < 100 & brain_wt < 100",
+       caption = "Source: mammals dataset | R package openintro")
+```
+
+]
+
+.panel[.panel-name[`Boston`]
+
+```{r boston-scatter}
+ggplot(MASS::Boston, aes(x = lstat, y = medv)) + 
+  geom_point() +
+  # geom_smooth(formula = y ~ x + I(x^2)) +
+  labs(x = "Share of the lower status of the population [%]",
+       y = "Median home value [1,000US$]",
+       title = "Housing values in suburbs of Boston, MA",
+       caption = "Source: Boston dataset | R package MASS")
+```
+
+]
+
+.panel[.panel-name[`smoking`]
+
+```{r smoking-scatter}
+ggplot(smoking, aes(x = age, y = amt_weekdays)) + 
+  geom_point() +
+  labs(x = "Age", y = "Cigarettes smoked per weekday",
+       title = "Frequency of smoking by age (UK; 2000-2009)",
+       caption = "Source: smoking dataset | R package openintro")
+```
+
+]
+
+]
+
+<!-- .content-box-blue[ -->
+
+<!-- **Form? Direction? Strength? Outliers?**   -->
+
+<!-- ] -->
+
+???
+
+bdims:
+
+- form: linear
+- direction: positive
+- strength: moderate to high
+- outliers: _few_
+
+mammals:
+
+- form: ??
+- direction: positive
+- strength: strong
+- outliers: few strong outliers
+
+smaller mammals:
+
+- form: _rather_ linear
+- direction: positive
+- strength: moderate-strong
+- outliers: few strong outliers
+
+Boston: magnitude of the negative relationship is not constant for every value of lstat -> higher decrease in house prices with increasing share of the lower population between 0-10 of lstat
+
+- form: non-linear
+- direction: negative
+- strength: moderate
+- outliers: few
+
+smoking:
+
+- form: ??
+- direction: ??
+- strength: no - very low
+- outliers: ??
+
+---
+
+## Correlation
+
+**(Pearson) Correlation coefficient** $\rho$: quantification of the **strength** and **direction** of a **linear** **bivariate** relationship. 
+
+$$\rho = \frac{\text{cov}_{x,y}}{s_x s_y} = \frac{\sum_{i=1}^N (x_i-\bar{x})(y_i-\bar{y})}{\sqrt{\frac{\sum_{i=1}^{N} \left(x_i-\bar{x}\right)^2}{N-1}} \sqrt{\frac{\sum_{i=1}^{N} \left(y_i-\bar{y}\right)^2}{N-1}}}$$
+with
+
+- $\bar{x},\bar{y}$: sample mean of $x$, $y$
+- $s_x, s_y$: standard deviation of $x$, $y$
+- $\text{cov}_{x,y}$: covariance of $x$ and $y$
+- $N$: number of observations
+
+???
+
+- a crude measure of the relationship between variables is the covariance
+- if we standardize this value we get Pearson's correlation coefficient
+- numerator: quantifies the sum of products of the squared deviations from the mean for x and y
+- denominator: product of standard deviations of x and y 
+
+---
+
+## Interpretation
+
+&nbsp;
+
+&nbsp;                | Direction                        | Description
+:-------------------- | :------------------------------- | :----------------------------
+$\rho>0$              | **positive linear relationship** | _Both variables are always above the mean or below the mean together._
+$\rho<0$              | **negative linear relationship** | _The variables move in opposite directions_. 
+
+&nbsp;
+
+&nbsp;                        | Strength (rules of thumb)
+:---------------------------- | :-------------------------------------
+$\rho\approx 0$               | **no linear correlation** (the variables are independent)
+$\text{abs}(\rho)\approx 0.1$ | **weak relationship**
+$\text{abs}(\rho)\approx 0.3$ | **moderate relationship**
+$\text{abs}(\rho)\approx 0.5$ | **strong relationship**
+$\text{abs}(\rho)\approx 1$   | **perfect linear correlation** (the variables are dependent)
+
+
+???
+- correlation coefficient has to lie between -1 and 1
+- sign: direction
+- magnitude: strength
+- rules of thumb regarding the strength of the relationship: +-0.1: low strength, +-0.3 moderate strength, +-0.5 high strength
+
+---
+
+## Correlation examples
+
+Six examples of bivariate distributions with different correlation coefficients:
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+```{r cor-examples, echo=F, fig.width=30/2.54, fig.height=16/2.54, cache=TRUE}
+library(purrr)
+n <- 250 # Sample size
+cors <- c(-0.9, -0.5, 0, 0.5, 0.9, 0.99) # correlation coefficients
+dat <- map_dfr(cors, function(r) {
+  # Draw random sample from bivariate normal distribution with
+  # mean=0, sd=1 and covar=r
+  mat_mvrnorm <- MASS::mvrnorm(n, c(0,0), matrix(c(1,r,r,1),2,2))
+  tibble(r = r, x = mat_mvrnorm[, 1], y = mat_mvrnorm[, 2])
+})
+ggplot(dat, aes(x,y)) +
+  facet_wrap(~r, labeller = as_labeller(function(x){
+    latex2exp::TeX(paste0("$\\rho$ = ", x), output = "text")
+  }, default = label_parsed)) + 
+  geom_point() +
+  geom_vline(xintercept = 0, linetype = 2) + 
+  geom_hline(yintercept = 0, linetype = 2)
+```
+
+]
+.panel[.panel-name[Code]
+
+```{r cor-examples-code, ref.label = "cor-examples", eval=F}
+```
+
+]
+
+]
+
+???
+
+- 1, 5,6: starker linearer Zusammenhang
+- 1: negativ, 5,6: positive
+- 2,4: moderater linearer Zusammenhang
+- 3: unkorrelierte Variablen
+
+---
+
+## Computing correlation coefficients with `R`
+
+We can calculate the correlation coefficient in `R` using `stats::cor()`:
+
+```{r cor, eval=FALSE}
+cor(x, y = NULL, use = "everything", method = "pearson")
+```
+
+- `x`: numeric variable/ data frame/ matrix
+- `y`: another numeric variable (optional)
+- `use`: handling of missing values
+  - `"everything"` returns `NA` if any of the two variables has missing values
+  - `"all.obs"` returns an error if there are any missing values in the data
+  - `"complete.obs"` computes correlations only from cases without missing values
+  - `"pairwise.complete.obs"` computes correlations between pairs of variables only from cases without missing values for those two variables
+- `method`: 
+  - `"pearson"`: parametric, use for normally distributed data
+  - `"spearman"`: non-parametric, use for non-normally distributed data
+  - `"kendall"`: non-parametric, use for _smallish_ non-normally distributed data
+
+???
+
+- kendall's tau: also when you have a small dataset with a large number of tied ranks
+
+---
+
+## Correlation: father-son data
+
+.pull-left[
+
+Pearson correlation coefficient for father-son data:
+
+```{r cor-heights}
+rho <- 
+  cor(father_son$fheight, father_son$sheight)
+rho
+```
+
+]
+
+.pull-right[
+
+```{r father-son-scatter-cor, ref.label="father-son-scatter", echo = FALSE}
+
+```
+
+
+]
+
+???
+
+- by means of the rho we can be more precise regarding strength and direction of the relationship between fathers and sons
+- 0.5 moderate linear correlation
+- generally, taller fathers get taller sons, smaller fathers get smaller sons, BUT
+- there are a few cases where this statement doesn't hold true
+- some tall fathers get small sons and some small fathers get tall sons
+
+---
+
+## Use correlation for linear relationships only
+
+.content-box-yellow[
+
+&#x26A0;&#xFE0F; Correlation is not always an appropriate summary of the relationship between a pair of variables.
+
+]
+
+
+This is illustrated by the famous [Anscombe's quartet](https://en.wikipedia.org/wiki/Anscombe%27s_quartet) which comprises four two-dimensional datasets with a correlation of $\rho=0.82$ between the input features:
+
+.pull-left[
+
+```{r anscombe-data, echo = F}
+knitr::kable(anscombe, format = "html") %>%
+  kableExtra::kable_styling(position = "left")
+```
+
+]
+
+.pull-right[
+
+.font80[
+
+```{r anscombe-code, echo=FALSE, warning=FALSE}
+ans <- anscombe %>%
+  tidyr::pivot_longer(
+    cols = everything(), 
+    names_to = c("var", "group"),
+    names_pattern = "(.)(.)"
+    ) %>%
+  tidyr::pivot_wider(names_from = var, values_from = value) %>%
+  tidyr::unnest(x,y)
+
+ans %>% 
+  group_by(group) %>%
+  summarize(
+    across(everything(), list(mean = mean, sd = sd)),
+    rho = cor(x,y)
+  )
+```
+
+]
+
+```{r anscombe-plot, fig.width = 18/2.54, fig.height=10.5/2.54, echo = FALSE}
+ans %>%
+  ggplot(aes(x,y)) +
+  facet_wrap(~group)  +
+  # geom_smooth(method = "lm", se = FALSE, fullrange = TRUE) +
+  geom_point(size = 2)
+```
+
+]
+
+???
+
+- je 10 Instanzen
+- je ein Wert für x und y
+- gleiche Werte für deskriptive Merkmale wie Mittelwert, Standardabweichung
+
+- if we plot the data, we notice that the relationship between x and y is very different across the four datasets
+  - 1: relatively high linear relationship -> rho is approriate here 
+  - 2: non-linear relationship 
+  - 3: if we remove the outlier, we would have a perfect correlation with rho of 1
+  - 4: inverse to 3: basically, there is no relationship between variables, but the single outlier is responsible for the high correlation coefficient
+  - 3: outlier leads to a reduction of the correlation coefficient
+  - 4: whereas in 4, the outlier leads to an increase of the correlation coefficient
+
+---
+
+## Spurious correlations
+
+```{r spurious-correlation, echo=FALSE, out.width="100%", fig.align='center'}
+knitr::include_graphics(file.path("figures", "06-spurious_correlation.PNG"))
+```
+
+.footnote[Figure source: http://www.tylervigen.com/spurious-correlations. Last accessed 17.02.2021.]
+
+???
+
+- But be careful when interpreting rho
+- line chart shows an almost perfect correlation
+- black line: number of suicides by hanging, strangulation and suffocation from 1999 to 2009
+- red line: US spending on science space and technology
+- spurious correlation: statistically correlate but one does not cause the other
+
+
+- Vorsicht bei der Interpretation des Kor.koef.: In diesem Liniendiagramm wird eine fast perfekte Korrelation dargestellt, auf der einen Seite den Ausgaben der USA für Wissenschaft, Raumfahrt und Technologie, auf der anderen Seite der Anzahl von Selbstmorde durch Hängen, Erwürgen und Ersticken 
+
+- spurious correlation = Scheinkorrelation
+- Ursache und Wirkung überprüfen
+- Hängen, Erwürgen, Ersticken
+- anderes Beispiel: Menschen, die in einem Pool ertrinken und Anzahl von Nicolas-Cage-Filmen pro Jahr
+
+---
+
+## Correlation vs. causation
+
+```{r correlation-vs-causation, echo=FALSE, out.width="45%"}
+knitr::include_graphics(file.path("figures", "06-correlation.png"))
+```
+
+.content-box-yellow[
+
+&#x26A0;&#xFE0F; Correlation does not imply causation.
+
+]
+
+Possible reasons: 
+
+**Confounding/ third-variable problem**: a measured or unmeasured variable affects the results.  
+Example: _Elite college degree &rarr; adult earnings_ (confounder: parental socioeconomic status)
+
+**Direction of causality**: correlation coefficients do not imply the direction of causation.  
+Example: _Chocolate consumption is correlated with acne and vice versa._
+_Chocolate contains ingredients such as fats or sugar causing acne, so chocolate consumption leads to acne, but not the other way around._
+
+.footnote[Figure source: https://xkcd.com/552/]
+
+???
+
+- causation = Kausalität
+- Zusammenhang kann zufällig sein
+- Anwendung für Visual Analytics: Anwendungsexperte überprüft, ob Korrelationen Sinn ergeben
+
+Übungsaufgabe: DisStaUsiR S. 242
+
+---
+
+## Simple Linear Regression
+
+Goal: **predict** a **quantitative** **response** $y$ on the basis of a single **predictor** $x$ 
+
+Terminology:
+
+- $y$: response / dependent variable
+- $x$: predictor / independent or explanatory variable
+
+???
+
+- so far, we looked at how to measure relationships between two variables.
+- we take this process a step further and predict one variable from another
+- example: based on the height of the father, try to predict the height of his son 
+- example: try to predict levels of stress from the amount of time until you have to give a talk (negative relationship -> if there's 10 min to go until someone has to give a talk, how anxious will they be)
+
+- rho: Kenngröße für den die Stärke und Richtung von linearen Zusammenhängen
+- wir sind daran interessiert anhand unserer Daten ein Modell zu lernen, das beschreibt, wie groß ein Sohn wird, gegeben der Größe des Vaters.
+- Bei linearer Regression suchen wir nach der Geraden, die den Zusammenhang zwischen 2 Variablen am besten beschreibt.
+
+unabhängig Variable = einfache lineare Regression -> eine Predictor-Variable -> generell kann eine Response-Variable durch mehrere Predictor-Variablen beschrieben werden. Für den Fall wird eine Unabhängigkeitsannahme gemacht.
+
+---
+
+## General statistical model
+
+The value of the **response** is **modeled** as a **function of the predictor** (plus some additional noise).
+
+$$y = f(x) + \epsilon, \qquad \epsilon \sim N(0, \sigma_{\epsilon})$$
+
+Example: $y = f(x) = 2x + 3$ is a function with input $x$ (predictor) and output $y$ (response). If $x$ is 4, $y$ is 11, then $y = 2 \times 4 + 3 = 11$
+
+---
+
+## Simple linear regression
+
+**Simple** linear regression: predict a quantitative response $Y$ on the basis of a **single predictor variable** $X$
+
+Assumption: model fit is linear, i.e., the data can be summarized with a straight line.
+
+$$f(x) = \beta_0 + \beta_1 x$$
+$\rightarrow$ two unknown **parameters**/**coefficients**: **intercept** $\beta_0$ and **slope** $\beta_1$
+
+
+???
+
+- intercept: Achsenschnittpunkt
+- slope: Anstieg
+
+---
+
+## Best fit line
+
+.panelset[
+
+.panel[.panel-name[Line candidates]
+
+```{r best-fit-line, fig.width=9, fig.height=5}
+# Manually create some regression lines
+df_reg_lines <- expand_grid(intercept = 82:88, slope = seq(0.4, 0.6, 0.1))
+ggplot(data = father_son, aes(x = fheight, y = sheight)) + 
+  geom_point() +
+  geom_abline(data = df_reg_lines, aes(intercept = intercept, slope = slope), color = "orange") + #<<
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+]
+.panel[.panel-name[Best fit]
+
+```{r best-fit-line-2, fig.width=9, fig.height=5}
+ggplot(data = father_son, aes(x = fheight, y = sheight)) + 
+  geom_point() +
+  geom_abline(data = df_reg_lines, aes(intercept = intercept, slope = slope), color = "orange") + 
+  geom_smooth(method = "lm", size = 1) + #<<
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+]
+
+.panel[.panel-name[Best fit without measure of uncertainty]
+
+```{r best-fit-line-3, fig.width=9, fig.height=5}
+ggplot(data = father_son, aes(x = fheight, y = sheight)) + 
+  geom_point() +
+  geom_abline(data = df_reg_lines, aes(intercept = intercept, slope = slope), color = "orange") + 
+  geom_smooth(method = "lm", size = 1,
+    se = FALSE) + #<< 
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+]
+
+]
+
+
+
+???
+
+- expand.grid erstellt ein data frame mit allen möglichen Kombinationen der Input-Vektoren
+
+- geom_smooth automatically creates a linear regression and shows its line 
+- gray area around the line: uncertainty of the line
+- Why does this line fit the data the best?
+- We need a measure to compare different models.
+
+
+---
+
+## Residuals
+
+Fitted values: $\hat{Y} = \hat{\beta_0} + \hat{\beta_1}X$ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&xrarr;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **Residuals**: $e = Y - \hat{Y}$
+
+A residual quantifies the model error for an individual observation by calculating the difference between the actual response value and the predicted response value.
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+```{r residuals, fig.width=9, fig.height=13/2.54, echo=FALSE}
+model <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(sheight ~ fheight, data = father_son)
+father_son %>% 
+  mutate(y_hat = model$fit$coefficients[1] + fheight * model$fit$coefficients[2]) %>%
+  mutate(res_cat = ifelse(y_hat > sheight, "overest", "underest")) %>%
+  ggplot(aes(fheight, sheight)) + 
+  geom_segment(aes(xend = fheight, yend = y_hat, color = res_cat), show.legend = FALSE, size = .25) +
+  geom_point() +
+  annotate("text", x = 150, y = 195, label = "model underestimates true value\n(e > 0)", color = "coral", hjust = 0, size = 5) +
+  annotate("text", x = 192.5, y = 150, label = "model overestimates true value\n(e < 0)", color = "cadetblue2", hjust = 1, size = 5) +
+  scale_color_manual(values = c("cadetblue2", "coral")) +
+  geom_smooth(method = "lm", se = FALSE, size = 1) + 
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+]
+
+.panel[.panel-name[Code]
+
+```{r residuals-code, ref.label="residuals",eval=FALSE}
+```
+
+]
+
+]
+
+???
+
+- the term residual as term for model error comes into play
+- please note this head notation
+- I'm using the head notation when I refer to the regression model and its predictions
+- I'm using the notation without heads when I'm referring to the actual values
+- now the goal is, to estimate the values for parameters beta_0 and beta_1, such that the model error is minimized
+- in linear regression, model error is difference between true value of the response and the predicted value of the response
+- in this plot, it is the vertical deviation between the true values shown as point and the corresponding value on the line.
+
+---
+
+## Least squares fitting procedure
+
+Goal: find the values that minimize the distance of the fitted model to the data. 
+
+$\rightarrow$ **Least squares** (LS) equation for $N$ observations of pairs $(x_i, y_i)$:
+
+$$\min_{\beta_0, \beta_1} RSS=\min_{\beta_0, \beta_1}  \sum_{i=1}^N e_i^2 = \min_{\beta_0, \beta_1}\sum_{i=1}^N \left( y_i - \left(\hat{\beta}_0 +   \hat{\beta}_1 x_{i}\right)\right)^2$$
+
+- Parameter values of the minimum are referred to as the **least squares estimates (LSE)** $\hat{\beta}$
+- The loss function is also known as **residual sum of squares** $RSS$
+
+???
+
+- for the optimal regression line it holds true that the sum of all residuals is equal to 0 AND
+- ... that the line cuts the mean values of x and y
+- least squares estimates is used (Least-Squares-Schätzungen)
+
+---
+
+## Relationship between correlation and regression
+
+Regression line explains that for every standard deviation $\sigma_x$ increase above the average $\bar{x}$, $y$ grows $\rho$ standard deviations $\sigma_y$ above the average $\bar{y}$:
+
+$$\left( \frac{y_i-\bar{y}}{\sigma_y} \right) = \rho \left( \frac{x_i-\bar{x}}{\sigma_x} \right)$$
+
+--
+
+Example for our father-son dataset, given a father height of $x_i$ = 160 cm:
+
+$$
+\begin{aligned}
+ \left( \frac{\hat{y_i}-174.46}{7.15} \right) &= 0.5013 \cdot \left( \frac{160-171.93}{6.97} \right) \\
+ \hat{y_i} &= 0.5013 \cdot \left( \frac{160-171.93}{6.97} \right)\cdot 7.15 + 174.46\\
+ \hat{y_i} &= 168.33
+\end{aligned}
+$$
+
+---
+
+**TODO: tidymodels overview**
+
+## Linear regression in `R`
+
+.panelset[
+
+.panel[.panel-name[Specify model]
+
+```{r lm-tidymodels-1}
+library(tidymodels)
+linear_reg()
+```
+
+]
+
+.panel[.panel-name[Set engine]
+
+```{r lm-tidymodels-2}
+linear_reg() %>%
+  set_engine("lm")
+```
+
+]
+
+.panel[.panel-name[Fit model and estimate parameters]
+
+```{r lm-tidymodels-3}
+linear_reg() %>%
+  set_engine("lm") %>%
+  fit(formula = sheight ~ fheight, data = father_son) -> model
+model
+```
+
+.content-box-blue[
+We specify the regression equation using **formula syntax**:
+
+`response ~ predictor1 + predictor2 + ...` .font80[&nbsp;&nbsp;(Note that we don't use quotation marks here.)]
+
+]
+
+
+]
+
+]
+
+???
+
+- `formula`: a formula with notation `outcome ~ predictor`
+- `~` (tilde) operator means "predicted from"
+- equation notation: Response on left side of the tilde and predictor on right sided of the tilde
+- very flexible -> if we had multiple predictors, we could include them in the equation by using + sign
+- OR log transform predictor or response -> log left parenthesis  name of predictor right parenthesis
+- `data`: name of the data frame which contains the outcome and predictor
+
+.footnote[
+
+ Use `as.formula()` to convert a string to a formula object. 
+
+]
+
+---
+
+## Model output
+
+```{r lm-tidymodels-3-output, ref.label="lm-tidymodels-3", echo = FALSE}
+```
+
+$$\widehat{sheight_i} = 86.0720 + 0.5141 \cdot fheight_i$$
+
+.content-box-blue[
+
+#### Interpretation:
+
+- **Slope**: For each additional cm the father is taller, the son is expected to be taller, on average, by 0.5141 cm.
+- **Intercept**: A father who is 0 cm tall is expected to have a son that is, on average, 86.0720 cm tall.
+
+]
+
+
+.content-box-green[
+
+For simple linear regression, the relationship between a regression line's slope  $\beta_1$ and the Pearson correlation coefficient $\rho$ between the explanatory variable and the response is: $\beta_1=\rho \cdot \frac{s_y}{s_x}$. 
+
+]
+
+???
+
+- Interpretation der Koeffizienten: 
+  - positive slope: equal to rho, the taller the father, the taller the son
+  - value = 0.51: If the father was 1 cm taller, then the son would be  0.51 cm taller.
+  - If $x$ and $y$ are standardized, the regression line has intercept 0, but the same slope.
+
+---
+
+## Extrapolation
+
+```{r extrapolation, echo=FALSE, out.width="50%"}
+knitr::include_graphics(file.path("figures", "06-xkcd_regression.png"))
+```
+
+.content-box-yellow[
+
+&#x26A0;&#xFE0F; Be careful when interpreting linear model predictions for observations beyond the range of the data it was built on.
+
+]
+
+
+.footnote[Figure source: <https://xkcd.com/605/>. Last accessed 17.02.2021.]
+
+???
+
+- comic nicely illustrates that in most cases, linear regression models are useful for the value ranges they are learned on.
+
+---
+
+## Assessing model diagnostics with the `broom` package
+
+.pull-left80[
+
+The `broom` package provides functions to convert model diagnostics into _tidy_ data frames. 
+
+- `tidy()` returns for each coefficient a row with its value, the standard error, $t$-statistic and p-value.
+- `augment()` adds columns to the original dataset from the model fit, e.g. residuals and influence statistics.
+- `glance()` returns a row with summary statistics, e.g. $R^2$, degrees of freedom, AIC.
+
+]
+
+.pull-right20[
+
+```{r broom-logo, echo=FALSE, out.width="100%"}
+knitr::include_graphics(file.path("figures", "06-broom.png"))
+```
+
+]
+
+```{r load-broom, R.options=list(digits=3)}
+library(broom) # included in tidymodels
+```
+
+.footnote[
+
+ See `vignette("broom")` for more information.
+
+]
+
+???
+
+- three weeks ago -> tidyverse and its data frame centric functions
+- lm is a very old function and produces an object of a class dedicated for linear regression
+- broom provides some functions to convert the output of lm() function to a data frame
+- e.g. augment, ...
+- fheight und sheight: original values
+- new variables whose names start with a dot . (diagnostic values)
+- .fitted: predicted values of our model
+- .se.fit: standard error of the fitted values
+- .resid: residuals
+- .hat: Leverage/hat values
+- .sigma: residual standard deviation, Residuenstandardabweichung für den Fall dass die Beobachtung vom Modell entfernt wird
+- .cooksd: Cook's distance
+- .std.resid: Standardisiertes Residuum (.resid/standard deviation of residuals)
+
+---
+
+## Tidy model output
+
+```{r lm-tidymodels-4}
+linear_reg() %>%
+  set_engine("lm") %>%
+  fit(formula = sheight ~ fheight, data = father_son) %>%
+  tidy() #<<
+```
+
+$$\widehat{sheight_i} = 86.0720 + 0.5141 \cdot fheight_i$$
+
+???
+
+- one row for intercept, one row for explanatory variable
+- estimate: beta coefficients / model parameters
+- std.error: uncertainty around the estimates
+- statistic: use estimate and std.error to calculate significance of relationship
+- p.value: standardized value of the statistic between 0 and 1
+
+---
+
+## Assessing the model fit
+
+.panelset[
+.panel[.panel-name[TSS]
+
+A simple **baseline model** is the mean of the response.
+
+```{r mean_sheight}
+(y_hat <- mean(father_son$sheight))
+```
+
+
+```{r tss-plot, fig.width=9, fig.height=4, echo=FALSE}
+ggplot(data = father_son, aes(x = fheight, y = sheight)) + 
+  geom_segment(aes(xend = fheight, yend = y_hat), size = .25) +
+  geom_point() +
+  geom_hline(yintercept = y_hat, size = 1, color = "chocolate") + #<<
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+The sum of squared differences between the observed values and the values predicted by the mean is called **total sum of squares $TSS$**.
+
+]
+.panel[.panel-name[RSS]
+
+The sum of squared differences between the observed values and the values predicted by the linear regression model is called **residual sum of squares $RSS$**.
+
+```{r rss-plot, fig.width=9, fig.height=4.5, echo=FALSE}
+mutate(father_son, y_hat = model$fit$coefficients[1] + fheight * model$fit$coefficients[2]) %>%
+  ggplot(aes(x = fheight, y = sheight)) + 
+  geom_segment(aes(xend = fheight, yend = y_hat), size = .25) +
+  geom_point() +
+  geom_abline(intercept = model$fit$coefficients[1], slope = model$fit$coefficients[2], size = 1, col = "blue") + 
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+]
+.panel[.panel-name[MSS]
+
+The improvement in prediction between the regression model and the mean is shown in the **model sum of squares $MSS$**. It is the sum of squared differences between the predicted values of the regression model and the mean.
+The value of $MSS$ is large when the regression model is very different to the mean prediction.
+
+```{r mss-plot, fig.width=9, fig.height=4.5, echo=FALSE}
+mutate(father_son, y_hat = model$fit$coefficients[1] + fheight * model$fit$coefficients[2]) %>%
+  ggplot(aes(fheight, sheight)) + 
+  geom_segment(aes(xend = fheight, y = mean(father_son$sheight), yend = y_hat), size = .25) +
+  geom_point() +
+  geom_hline(yintercept = y_hat, size = 1, color = "chocolate") +
+  geom_abline(intercept = model$fit$coefficients[1], slope = model$fit$coefficients[2], size = 1, col = "blue") + 
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+]
+.panel[.panel-name[R²]
+
+The proportion of improvement due to the regression model is **the coefficient of determination $R^2$**. It measures the **share of variability in the response that is captured by the regression model**.
+
+$$R^2=\frac{MSS}{TSS}=1-\frac{RSS}{TSS}$$
+
+```{r rss-obsolete, eval=FALSE, echo=FALSE}
+## vielleicht rausnehmen
+mss <- sum((augment(model$fit)$.fitted - mean(father_son$sheight))^2)
+tss <- sum((father_son$sheight - mean(father_son$sheight))^2)
+(r_sq <- mss/tss)
+```
+
+
+```{r rss}
+glance(model)
+```
+
+<!-- - $\hat{\beta}_1$ is significantly different from 0 &rarr; the father's height must have an effect on the son's height -->
+$R^2$ = 0.25 &rarr; Only 25% of the variation in son height can be explained by father height alone.
+
+It can be concluded that there are other factors that influence the height of sons (possibly mother height, genetic markers, etc.).
+
+]
+
+]
+
+
+???
+
+TSS: 
+
+- we know now that this line is optimal w.r.t to the RSS, so it is better in relation to other lines 
+- useful to have a baseline
+- most basic model is the mean of the response
+- response is independent from predictor
+- regardless of how tall the father is we will always predict 174.5
+
+RSS:
+
+- 25% of the variability of the sons' heights are captured by this line
+- square root of pearson correlation coefficient is R^2 
+- sum((model$fit$fitted.values - mean(father_son$sheight))^2)/sum((father_son$sheight - mean(father_son$sheight))^2)
+-F-ratio? S. 252
+
+## `augment()`
+
+```{r augment}
+augment(model$fit)
+```
+
+- `.fitted`: predicted values
+- `.resid`: residuals
+- `.hat`: Leverage values (degree of outlierness)
+- `.sigma`: residual standard deviation (impact on model fit)
+- `.cooksd`: Cook's distance (effect of deleting a given observation)
+- `.std.resid`: standardized residuals (.resid/standard deviation of residuals)
+
+---
+
+exclude: true
+
+## Statistical significance of fitted coefficients
+
+The $t$-**statistic** tests the null hypothesis that $\beta_1$ is 0.
+The $t$-statistic is based on the comparison between the estimated $\beta_1$ value and the amount of error in that estimate.
+
+$$\begin{align}t&=\frac{\hat{\beta_1}-\hat{\beta_1}^{expected}}{SE(\hat{\beta_1})}\\&=\frac{\hat{\beta_1}}{SE(\hat{\beta_1})}\end{align}$$
+
+
+???
+
+- to test the 0h, we check, whether our estimate for beta_1 is sufficiently different from 0
+- nominator: beta1_hat - beta1_expected_hat
+- beta-expected term is simply the value of beta that we would expect to obtain if the null hypothesis were true -> can be replaced by 0
+- this depends on the accuracy of our estimate, our standard error
+- The standard error is an estimate of the standard deviation of the coefficient, the amount it varies across cases.
+- t-value is high if our estimate for beta_1 is high and standard error is low
+- if t is very large then it is unlikely to have occurred when there is no effect
+
+
+- values of t have a special distribution that differs according to the degrees of freedom for the test. In regression , the degrees of freedom are n-p-1-> simple linear regression n-2
+
+- Um die 0-Hypothese zu testen, müssen wir überprüfen, ob unsere Schätzung für beta_1 ausreichend weit entfernt von 0 ist, um zu bestätigen, dass beta_1 ungleich 0 ist.
+- hängt von Genauigkeit der Schätzung ab, also Standardfehler. Ein kleiner Standardfehler ist ein Anzeichen dafür das beta_1 unglich 0 ist.
+- dazu berechnen wir den p-Wert anhand der t-Verteilung mit n-2 Freiheitsgeraden (n - 2 Koeffizienten).
+- 0-Hypothese ablehnen, wenn p-Wert kleiner als Signifikanzniveau ist
+
+---
+
+exclude: true
+
+## Predictions
+
+Make predictions on **out-of-sample** observation:
+
+```{r pred-1}
+predict(model$fit, newdata = data.frame(fheight = 180))
+```
+
+ using `broom`: 
+
+```{r pred-2}
+augment(model$fit, newdata = data.frame(fheight = 180))
+```
+
+???
+
+- Ausgabe als Vektor vs. Data Frame
+
+
+---
+
+## Multiple linear regression
+
+General model: 
+
+$$ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \ldots +  \beta_i X_p + \epsilon$$
+
+Predicted response equation:
+
+$$ \hat{Y} = \hat{\beta}_0 + \hat{\beta}_1 X_1 + \hat{\beta}_2 X_2 + \ldots +  \hat{\beta}_i X_p$$
+
+???
+
+- Response kann von mehreren Größen abhängig sein -> z. B. Größe des Sohns ist abhängig von Größe des Vaters und der Mutter
+
+---
+
+## Ames Iowa Housing Dataset
+
+.left-column[
+
+&nbsp;
+
+> "Data set contains information from the Ames Assessor’s Office used in 
+computing assessed values for individual residential properties sold in Ames, 
+IA from 2006 to 2010." &mdash; 
+[Dataset documentation](http://jse.amstat.org/v19n3/decock/DataDocumentation.txt)
+
+&nbsp; 
+
+.font80[
+
+De Cock, Dean. "Ames, Iowa: Alternative to the Boston housing data as an end of 
+semester regression project." Journal of Statistics Education 19.3 (2011). 
+[URL](http://jse.amstat.org/v19n3/decock.pdf)
+
+]
+
+]
+
+.right-column[
+
+```{r prep-ames, message=TRUE, R.options=list(width = 70)}
+library(AmesHousing)
+ames <- make_ames() %>% # prepares dataset
+  select(-matches("Qu")) # remove quality columns
+glimpse(ames)
+```
+
+]
+
+
+???
+
+- 2930 observations, 74 variables
+- remove quality columns: why?
+
+---
+
+## Simple linear regression
+
+```{r ames-area, fig.width=22/2.54, fig.height=12/2.54, echo=FALSE}
+ggplot(data = ames, aes(x = Gr_Liv_Area, y = Sale_Price/1000)) + 
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm") +
+  labs(x = "Ground floor living area [sq ft]", y = "Price [x 1,000 US$]", 
+       title = "Ground floor square feet vs. sale price, by fireplace")
+```
+
+The plot displays the relationship between ground floor living area and sale price of properties in Ames, Iowa. 
+
+.content-box-yellow[
+
+Is ground floor living area alone _sufficient_ to estimate a property's sale price? 
+
+]
+
+---
+
+## Categorical predictor with two levels
+
+.pull-left60[
+
+```{r has-fireplace}
+ames <- ames %>%
+  mutate(has_fireplace = 
+           as.factor(Fireplaces > 0))
+ames %>% 
+  select(Sale_Price, Fireplaces, has_fireplace) %>%
+  print(n = 15)
+```
+
+]
+
+.pull-right40[
+
+- `has_fireplace = FALSE`: property does not have a fireplace 
+- `has_fireplace = TRUE`: property has one or more fireplaces 
+
+]
+
+---
+
+.left-column[
+
+&nbsp;
+
+&nbsp;
+
+.content-box-yellow[
+
+How, if at all, does the relationship between ground floor living area and price of Ames properties vary by whether or not they have a fireplace?
+
+]
+
+]
+
+.right-column[
+
+.panelset[
+.panel[.panel-name[Plot]
+
+```{r ames-area-fireplace, fig.width=22/2.54, fig.height=12/2.54, echo=FALSE}
+ggplot(data = ames, aes(x = Gr_Liv_Area, y = Sale_Price/1000, color = has_fireplace)) + 
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm") +
+  scale_color_brewer(palette = "Set1", direction = -1) +
+  labs(x = "Ground floor living area [sq ft]", y = "Price [x 1,000 US$]", 
+       title = "Ground floor square feet vs. sale price, by fireplace")
+```
+
+]
+
+.panel[.panel-name[Code]
+
+```{r ames-area-fireplace-code, ref.label = "ames-area-fireplace", eval=FALSE}
+```
+
+]
+
+]
+
+]
+
+---
+
+<!-- Year_Sold -->
+
+## Multiple linear regressions
+
+```{r ames-lm-multi}
+linear_reg() %>%
+  set_engine("lm") %>%
+  fit(formula = Sale_Price ~ Gr_Liv_Area + has_fireplace, data = ames) %>%
+  tidy()
+```
+
+--
+
+.content-box-blue[
+
+#### Interpretation
+
+- Slope of `Gr_Liv_Area`: _all else held constant_, for each additional square feet a property's ground floor living area is larger, we would expect the sale price to be higher, on average, by ca. 97 US$. 
+- Slope of `has_fireplaceTRUE`: _all else held constant_, a property with a fire place is, on average, by 33,714 US$ more expensive.
+- Intercept: a property with 0 sq ft ground floor living area and without fire places is expected to cost ca. 17,970 US$.
+
+]
+
+---
+
+## Incorporating model complexity
+
+Recall the coefficient of determination: $R^2=\frac{MSS}{TSS}$
+
+.content-box-red[
+
+This measure has an issue: $R^2$ increases with each additional variable.
+
+<!-- * $MSS$ always decreases for every additional variable in the model. -->
+<!-- * Consequently,  -->
+
+]
+
+--
+
+### Occam's razor or the principle of parsimony
+
+.content-box-blue[
+
+Given two models of equal quality, the simpler model is preferred over the more complex model. 
+
+]
+
+&rarr; Add a variable to the model _only_ if its addition increases model quality (predictive power) by a _substantial degree_
+
+---
+
+## Adjusted $R^2$
+
+The **Adjusted** $R^2$ contains a term penalizing the addition of each further variable to the model:
+
+$$
+\begin{aligned}
+\text{Adjusted } R^2 &= R^2\cdot\frac{n-1}{n-p-1}\\
+&=\frac{MSS}{TSS}\cdot\frac{n-1}{n-p-1}
+\end{aligned}
+$$
+
+- $n$: number of observations
+- $p$: number of predictors / explanatory variables
+
+???
+
+adjustiertes Bestimmtheitsmaß
+
+- zusätzlicher Term wird größer mit zunehmender Anzahl von Prädiktor-Variablen 
+
+---
+
+## Adjusted $R^2$
+
+.panelset[
+
+.panel[.panel-name[One vs. two predictors]
+
+```{r ames-lm-single-r2}
+linear_reg() %>% set_engine("lm") %>%
+  fit(formula = Sale_Price ~ Gr_Liv_Area, data = ames) %>% glance()
+```
+
+```{r ames-lm-multi-r2}
+linear_reg() %>% set_engine("lm") %>%
+  fit(formula = Sale_Price ~ Gr_Liv_Area + has_fireplace, data = ames) %>% glance()
+```
+
+.content-box-green[
+
+The addition of `has_fireplace` leads to a better model, both in terms of $R^2$ and adjusted $R^2$.
+
+]
+
+]
+
+.panel[.panel-name[Counterexample plot]
+
+.content-box-yellow[
+
+Does the addition of `Year_Sold` to the model lead to a better fit?
+
+```{r ames-area-year-sold, fig.width=22/2.54, fig.height=12/2.54, echo=FALSE}
+ggplot(data = ames, aes(x = Gr_Liv_Area, y = Sale_Price/1000, color = as.factor(Year_Sold))) + 
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm") +
+  scale_color_viridis_d() +
+  labs(x = "Ground floor living area [sq ft]", y = "Price [x 1,000 US$]", 
+       title = "Ground floor square feet vs. sale price, by year sold",
+       color = "Year sold")
+```
+
+]
+
+]
+
+.panel[.panel-name[Counterexample R² vs. adj. R²]
+
+```{r pillar-sigfig-turn-on, include = FALSE}
+options(pillar.sigfig = 5)
+```
+
+```{r ames-lm-without-sale-price-r2, ref.label="ames-lm-single-r2"}
+```
+
+```{r ames-lm-with-sale-price-r2, R.options=list(digits=5)}
+linear_reg() %>% set_engine("lm") %>%
+  fit(formula = Sale_Price ~ Gr_Liv_Area + Year_Sold, data = ames) %>% glance()
+```
+
+```{r pillar-sigfig-turn-off, include = FALSE}
+options(pillar.sigfig = 3)
+```
+
+.content-box-red[
+
+The addition of `Year_Sold` leads to a model with slightly better $R^2$ (0.4997 > 0.4995). 
+However, since the adjusted $R^2$ value is lower (0.49934 < 0.49937), the simpler model should be preferred.  
+Adjusted $R^2$ doesn't increase because `Year_Sold` does not provide enough new information, or, in other words, is nearly unrelated.
+
+]
+
+]
+
+]
+
+---
+
+## Main vs. interaction effects
+
+.content-box-blue[
+
+Suppose we want to predict property prices from their living area and presence of a fire place.
+
+Which of the following models is more appropriate?
+
+1. **Main effects:** The rate at which price changes as living area increases is the same for properties with fire places and properties without fire places.
+2. **Interaction effects:** The rate at which price changes as living area increases differs between properties with fire places and properties without fire places.
+
+]
+
+---
+
+class: center, middle
+
+```{r ames-interaction, fig.width=35/2.54, fig.height=20/2.54, echo=FALSE}
+m1 <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(formula = Sale_Price ~ Gr_Liv_Area + has_fireplace, data = ames)
+m2 <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(formula = Sale_Price ~ Gr_Liv_Area * has_fireplace, data = ames)
+
+p<- ggplot(data = ames, aes(x = Gr_Liv_Area, y = Sale_Price, color = has_fireplace)) + 
+  scale_y_continuous(labels = function(x) x / 1000) +
+  geom_point(alpha = 0.4) +
+  scale_color_brewer(palette = "Set1", direction = -1)
+
+p1 <- p + 
+  geom_abline(intercept = m1$fit$coefficients[1], slope = m1$fit$coefficients[2], color = "#377EB8") +
+  geom_abline(intercept = m1$fit$coefficients[1] + m1$fit$coefficients[3], slope = m1$fit$coefficients[2], color = "#E41A1C") +
+  labs(title = "Main effects, parallel slopes",
+       subtitle = "Gr_Liv_Area = Sale_price + has_fireplace")
+
+p2 <- p + 
+  geom_abline(intercept = m2$fit$coefficients[1], slope = m2$fit$coefficients[2], color = "#377EB8") +
+  geom_abline(intercept = m2$fit$coefficients[1] + m2$fit$coefficients[3], slope = m2$fit$coefficients[2] + m2$fit$coefficients[4], color = "#E41A1C") +
+  labs(title = "Interaction effects, not parallel slopes",
+       subtitle = "Gr_Liv_Area = Sale_price + has_fireplace +\nSale_price * has_fireplace")
+library(patchwork)
+p1 + p2 + patchwork::plot_layout(guides = "collect") & theme(legend.position = "bottom")
+```
+
+<!--                    attr_importance -->
+<!-- Gr_Liv_Area             64.7253324 -->
+<!-- Neighborhood            47.0390058 -->
+<!-- First_Flr_SF            36.8121825 -->
+<!-- Total_Bsmt_SF           34.7458999 -->
+<!-- MS_SubClass             31.9514404 -->
+<!-- Garage_Cars             28.1824909 -->
+<!-- Second_Flr_SF           27.5964854 -->
+<!-- Year_Built              26.6895673 -->
+<!-- BsmtFin_Type_1          26.5076070 -->
+<!-- Year_Remod_Add          24.8051642 -->
+<!-- Garage_Area             24.3035965 -->
+<!-- Fireplaces              24.0496287 -->
+<!-- Lot_Area                22.1650352 -->
+<!-- Bsmt_Unf_SF             19.6627118 -->
+<!-- Bsmt_Full_Bath          19.6453495 -->
+<!-- Central_Air             18.5536365 -->
+<!-- Exterior_2nd            18.2031016 -->
+<!-- Overall_Cond            17.7018098 -->
+<!-- TotRms_AbvGrd           17.0871701 -->
+<!-- Longitude               16.6975520 -->
+<!-- Latitude                16.2424198 -->
+<!-- Full_Bath               15.9053150 -->
+<!-- Bsmt_Exposure           15.6228796 -->
+<!-- Open_Porch_SF           15.4572853 -->
+<!-- Exterior_1st            15.2761932 -->
+<!-- BsmtFin_SF_1            14.5043185 -->
+<!-- Garage_Type             14.2260289 -->
+<!-- Garage_Cond             14.0896103 -->
+<!-- Wood_Deck_SF            12.9984279 -->
+<!-- Bedroom_AbvGr           12.7531997 -->
+<!-- Half_Bath               12.2157457 -->
+<!-- House_Style             12.1837985 -->
+<!-- Garage_Finish           12.1402089 -->
+<!-- Bldg_Type               11.8455279 -->
+<!-- MS_Zoning               11.3379275 -->
+<!-- Mas_Vnr_Area            11.0250429 -->
+<!-- Lot_Frontage            10.4645931 -->
+<!-- Bsmt_Cond               10.3258146 -->
+<!-- Paved_Drive             10.1635278 -->
+<!-- Kitchen_AbvGr            9.7998820 -->
+<!-- Mas_Vnr_Type             9.6310923 -->
+<!-- Foundation               9.0143406 -->
+<!-- Heating_QC               8.6007908 -->
+<!-- Sale_Condition           8.0757267 -->
+<!-- BsmtFin_Type_2           7.6664175 -->
+<!-- Roof_Style               7.4742070 -->
+<!-- Screen_Porch             6.5981197 -->
+<!-- Land_Contour             6.1430312 -->
+<!-- Functional               5.7319252 -->
+<!-- Sale_Type                5.1025988 -->
+<!-- Enclosed_Porch           4.7535688 -->
+<!-- Alley                    4.5561920 -->
+<!-- Lot_Shape                4.5018087 -->
+<!-- Land_Slope               4.2719235 -->
+<!-- Exter_Cond               3.6997475 -->
+<!-- Mo_Sold                  3.3331162 -->
+<!-- Condition_1              2.9150354 -->
+<!-- Lot_Config               2.2003938 -->
+<!-- Electrical               2.1345511 -->
+<!-- Misc_Val                 1.7447942 -->
+<!-- Fence                    1.7019599 -->
+<!-- Year_Sold                1.6404323 -->
+<!-- Misc_Feature             1.3703530 -->
+<!-- Pool_QC                  1.2045949 -->
+<!-- BsmtFin_SF_2             1.1528664 -->
+<!-- Bsmt_Half_Bath           1.0722768 -->
+<!-- Street                   0.9064887 -->
+<!-- Pool_Area                0.1314096 -->
+<!-- Utilities                0.0000000 -->
+<!-- Roof_Matl               -0.5048499 -->
+<!-- Heating                 -1.0910015 -->
+<!-- Condition_2             -1.4516610 -->
+<!-- Three_season_porch      -2.4842825 -->
+
+
+---
+
+## Model with main effects
+
+```{r ames-main-effects}
+m1 <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(formula = Sale_Price ~ Gr_Liv_Area + has_fireplace, data = ames)
+m1
+```
+
+$$\widehat{Sale\_Price} = 17,970 + 97 \cdot Gr\_Liv\_Area + 33,714 \cdot has\_fireplace$$
+
+---
+
+## Model with interaction effects 
+
+```{r ames-interaction-effects}
+(m2 <- linear_reg() %>% set_engine("lm") %>%
+  fit(formula = Sale_Price ~ Gr_Liv_Area * has_fireplace, data = ames))
+```
+
+.font70[
+
+$$
+\begin{align}
+\widehat{Sale\_Price} &= 57,113 &+ 66 \cdot Gr\_Liv\_Area &-31,309 \cdot has\_fireplace &+ 46 \cdot Gr\_Liv\_Area \cdot has\_fireplace\\\\
+\widehat{Sale\_Price}(has\_fireplace = 1) &= 57,113 &+ 66 \cdot Gr\_Liv\_Area &-31,309 \cdot 1 &+ 46 \cdot Gr\_Liv\_Area \cdot 1\\
+&= 25,804 &+ 112 \cdot Gr\_Liv\_Area & & \\\\
+\widehat{Sale\_Price}(has\_fireplace = 0) &= 57,113 &+ 66 \cdot Gr\_Liv\_Area &-31,309 \cdot 0 &+ 46 \cdot Gr\_Liv\_Area \cdot 0\\
+&= 57,113 &+ 66 \cdot Gr\_Liv\_Area & & \\
+\end{align}
+$$
+
+]
+
+---
+
+## Model selection
+
+```{r ames-main-effects-r2}
+glance(m1)
+```
+
+```{r ames-interaction-effects-r2}
+glance(m2)
+```
+
+.content-box-green[
+
+Including the interaction effect of `Gr_Liv_Area` and `has_fireplace` yields a better model.  
+
+]
+
+```{r ames-main-vs-interaction-r2}
+glance(m2)$adj.r.squared > glance(m1)$adj.r.squared
+```
+
+
+---
+
+## Models with categorical predictors
+
+.panelset[
+.panel[.panel-name[Dwelling type]
+
+```{r ames-building-type}
+janitor::tabyl(ames, Bldg_Type)
+```
+
+The explanatory variable `Bldg_Type` is a factor with five levels.
+
+.content-box-blue[
+
+Multinominal predictors, i.e., variables with more than two categories, will be automatically encoded as **dummy variables**.
+
+]
+
+]
+
+.panel[.panel-name[Dummy variables]
+
+```{r dummy, echo = FALSE}
+library(kableExtra)
+tribble(
+  ~"Bldg_Type", ~"TwoFmCon", ~"Duplex", ~"Twnhs", ~"TwnhsE",
+  "OneFam",    0, 0, 0, 0,
+  "TwoFmCon",  1, 0, 0, 0,
+  "Duplex",    0, 1, 0, 0,
+  "Twnhs",     0, 0, 1, 0,
+  "TwnhsE",    0, 0, 0, 1
+)  %>%
+  map_dfc(function(x) {
+    if(is.numeric(x)) {
+      x <- cell_spec(x, background = ifelse(x, "lime", "#eeeeee"), background_as_tile = FALSE)
+    }
+    x
+  }) %>%
+  kbl(align = "lccccc", escape = FALSE) %>%
+  kable_styling() %>%
+  kableExtra::add_header_above(c(" " = 1, "Dummy variables" = 4)) 
+```
+
+Note that only four dummy variables are created. The building type of properties with _baseline category_ `OneFam` can be inferred from the other dummy variables. 
+
+
+]
+
+.panel[.panel-name[Relationsh. between living area, dwelling type & sale price]
+
+```{r ames-building-type-fit}
+linear_reg() %>%
+  set_engine("lm") %>%
+  fit(Sale_Price ~ Gr_Liv_Area + Bldg_Type, data = ames) %>%
+  tidy()
+```
+
+]
+
+.panel[.panel-name[Plot]
+
+```{r ames-area-building-type-plot, fig.width=25/2.54, fig.height=12/2.54, echo=FALSE}
+ggplot(data = ames, aes(x = Gr_Liv_Area, y = Sale_Price/1000, color = Bldg_Type)) + 
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm") +
+  scale_color_brewer(palette = "Set1", direction = -1) +
+  labs(x = "Ground floor living area [sq ft]", y = "Price [x 1,000 US$]", 
+       title = "Ground floor square feet vs. sale price, by building type")
+```
+
+
+]
+
+]
+
+---
+
+## Further observation-level diagnostics
+
+.pull-left80[
+
+.content-box-yellow[
+- For which properties does the model have difficulty estimating the sale price?
+- Which properties are **outliers** with respect to the sample distribution? 
+- Which properties have a high **influence** on the model?
+
+]
+
+]
+
+.pull-right20[
+
+```{r outlier-illustration, echo = FALSE, fig.width=10/2.54}
+df_o <- tibble(
+  x = seq(20,80,length.out = 7),
+  y = 100*x - 1000,
+  group = 1
+)
+df_o <- bind_rows(df_o, tibble(x = 500, y = 9000, group = 2))
+
+ggplot(df_o, aes(x, y)) +
+  geom_point() +
+  geom_smooth(data = df_o %>% filter(group == 1), linetype = 1, size = 0.5, method = "lm", se = FALSE, color = "black") +
+  geom_smooth(linetype = 2, size = 0.5, method = "lm", se = FALSE, color = "black") +
+  theme_void()
+```
+
+]
+
+```{r augmented-mod}
+(augmented_mod <- augment(model$fit))
+```
+
+---
+
+## Properties with high residuals
+
+Which son heights are difficult to predict?
+
+.panelset[
+.panel[.panel-name[Plot]
+
+```{r residual-plot, fig.width=10, fig.height=4.5, echo=FALSE}
+ggplot(augmented_mod, aes(x = fheight, y = sheight)) + 
+  geom_point(aes(color = .resid)) +
+  geom_smooth(method = "lm") +
+  scale_color_gradient2(mid = "gray80") +
+  labs(x = "Father's height [cm]", y = "Son's height [cm]", color = "Residuals")
+```
+
+.font80[
+.content-box-blue[
+
+Residuals are measured in the same units as the response. 
+To obtain **standard residuals**, we divide the residuals by their standard deviation.
+
+]
+]
+
+]
+.panel[.panel-name[Code]
+
+```{r residual-plot-code, ref.label="residual-plot", eval=FALSE}
+```
+
+]
+]
+
+
+
+???
+
+- Punkte sind sehr weit vom Regressionsgerade entfernt
+- in einem interaktiven Tool könnte der Experte entscheiden, was mit diesen Beobachtungen gemacht wird. 
+
+---
+
+## High leverage properties
+
+[Leverage](https://en.wikipedia.org/wiki/Leverage_(statistics) (or **hat values**) measures the outlierness of an observation based on the difference to the general distribution of the sample. 
+
+.panelset[
+.panel[.panel-name[Plot]
+
+```{r leverage, fig.width=10, fig.height=4.5, echo=FALSE}
+ggplot(augmented_mod, aes(fheight, sheight)) +
+  geom_point(aes(color = .hat), alpha = 0.6) + #<<
+  geom_smooth(method = "lm") +
+  scale_color_viridis_c(option = "inferno") +
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+.font80[
+
+.content-box-blue[
+
+The range of hat values is between 0 (very close to other observations) and 1 (far away from other observations).
+
+]
+
+]
+
+
+]
+.panel[.panel-name[Code]
+
+```{r leverage-code, ref.label="leverage", eval=FALSE}
+```
+
+]
+]
+
+
+???
+
+- observations with high leverage could influence the regression mode.
+- a popular measure to calculate the effect of an observation on a regression model is cook's distance 
+
+---
+
+## "Influential" properties
+
+**Cook's distance** measures the effect of removing a given observation on the change of the model.
+
+<!-- $$D_i=\frac{e_i^2}{RSS/N}\left( \frac{h_i}{(1-h_i)^2} \right)$$ -->
+
+.panelset[
+.panel[.panel-name[Plot]
+
+```{r cook, fig.width=10, fig.height=4.5, echo=FALSE}
+ggplot(augmented_mod, aes(fheight, sheight)) +
+  geom_point(aes(color = .cooksd), alpha = 0.6) + #<<
+  geom_smooth(method = "lm") +
+  scale_color_viridis_c(option = "inferno") +
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+.font80[
+
+.content-box-blue[
+
+As a rule of thumb, Cook's distance values greater than 1 indicate observations with a high influence on the model.
+
+In general, for observations with high Cook distance, one must weigh whether (a) they represent natural variation and should therefore be retained, or (b) they are outliers that are better removed before fitting
+
+]
+
+]
+
+
+
+]
+.panel[.panel-name[Code]
+
+```{r cook-code, ref.label="cook", eval=FALSE}
+```
+
+]
+]
+
+???
+
+- question: what to do with these points?
+- do they reflect natural variation across observations? (keep) 
+- or could it be that they are noise or measuring errors (delete)
+
+---
+
+## Assumptions of linear regression
+
+The list of assumptions for linear regression models includes:
+
+- **linearity**, i.e., "straight-line-relationship" between predictors and response
+- **homoscedasticity**, i.e., constant variance of residual terms
+- no perfect **collinearity** (perfect linear relationship between two or more predictors)
+- predictors are uncorrelated with variables that are not included in the model
+- **outliers**, **high-leverage** points
+
+
+???
+
+**TODO** modify from here
+
+- external variables: variebles that haven't been included in the regression model which influence the outcome variable -> if external variables do correlate with the predictors, then the conclusions we draw from the model become unreliable (because other variables exist that can predict the outcome just as well)
+- 
+
+---
+
+## Considerations for high-dimensional datasets 1/2
+
+Two popular methods for datasets with a high number of predictor variables are **Ridge** regression and **LASSO** regression. They introduce a **shrinkage** term in their optimization functions.
+
+Standard least squares estimate minimizes:
+
+$$RSS= \sum_{i=1}^n \left( y_i - \left(\hat{\beta}_0 +   \hat{\beta}_1 x_{i}\right)\right)^2$$
+
+--
+
+**Ridge regression**: penalizes high $\hat{\beta}$ values
+
+$$RSS= \sum_{i=1}^n \left( y_i - \left(\hat{\beta}_0 +   \hat{\beta}_1 x_{i}\right)\right)^2+\lambda\sum_{j=1}^p \beta_j^2=RSS+\lambda\sum_{j=1}^p \beta_j^2$$
+
+&rarr; implemented in `glmnet::glmnet()`: set `alpha=0`
+
+Advantage: **more stable than least squares**  when the number of predictors $p$ is almost as large as the number of observations $n$
+
+???
+
+- penalty term that shrinks coefficients to 0
+- the higher lambda -> the more impact the penalty term has
+- lambda is tuning parameter -> must be optimized eg. by cross-validation
+- lse: problem: if low bias but high variance -> small change in the training data can cause a large change in the least squares coefficient
+- don't say: bias-variance-trade-off: the higher lambda, the higher bias and lower variance
+- ridge regression does have one obvious disadvantag: shrinks all coefficients towards 0, but it will not set any of them exactly to zero
+- causes problems for interpretation
+
+---
+
+## Considerations for high-dimensional datasets 2/2
+
+**Ridge regression**: penalizes high $\hat{\beta}$ values
+
+$$RSS= \sum_{i=1}^n \left( y_i - \left(\hat{\beta}_0 +   \hat{\beta}_1 x_{i}\right)\right)^2+\lambda\sum_{j=1}^p \beta_j^2=RSS+\lambda\sum_{j=1}^p \beta_j^2$$
+
+**LASSO regression**: penalizes high $\hat{\beta}$ values
+
+$$RSS= \sum_{i=1}^n \left( y_i - \left(\hat{\beta}_0 +   \hat{\beta}_1 x_{i}\right)\right)^2+\lambda\sum_{j=1}^p |\beta_j|=RSS+\lambda\sum_{j=1}^p |\beta_j|$$
+
+&rarr; implemented in `glmnet::glmnet()`: set `alpha=1`
+
+Advantage: forces some coefficients to be **exactly equal to 0** which means that the model is easier to interpret
+
+???
+
+- l1 penalty instead of l2 penalty
+
+---
+
+## Other regression models in `R`
+
+- **Generalized linear models** (`stats::glm()`): allow for discrete responses, e.g. logistic regression
+- **Generalized additive models** (`mgcv::gam()`): allow for non-linear transformation of predictors
+- **Robust linear models** (`MASS::rlm()`): distance function reduces sensitivity to outliers
+
+???
+
+- Generalised linear models, e.g. stats::glm(). Linear models assume that the response is continuous and the error has a normal distribution. Generalised linear models extend linear models to include non-continuous responses (e.g. binary target variables). They work by defining a distance metric based on the statistical idea of likelihood.
+- Generalised additive models, e.g. mgcv::gam(), erweitern generaliserte lineare Modelle, sodass auch nicht-lineare Beziehungen abgebildet werden können. 
+- RLM have a different notation for the distance between objects:
+  - points, that are far away from the mean receive a lower weight -> downweighted
+  - more robust when  outliers are present
+  - (at the cost of being not quite as good when there are no outliers)
+
+---
+
+exclude: true
+
+## Summary
+
+- regression is a method to **predict values of one variable (response) from one or more other variables (predictors)**
+- in **simple linear regression**, a statistical model is fitted to the data in form of a **straight line**
+- this **line minimizes the sum of squared differences between the predicted values of the response and the predictor** 
+- the **coefficient of determination $R^2$** indicates **how much variance is explained by the model**
+- $\beta_1$ value indicates the slope of the regression line and thus, the **direction** and **strength** of the relationship between a predicotr and the response
+- pros:
+  - often (suprisingly) competetitive in comparison with more sophisticated methods
+  - model itself is **interpretable** &rarr; useful for inference
+- cons:
+  - strong assumptions, e.g., absence of collinearity
+  - in terms of accuracy inferior to state-of-the-art algorithms 
+
+???
+
+- addition R^2: it is the proportion of variance in the response that is shared by the predictor variables
+- If beta_1 is significant, then the predictor significantly predicts the outcome variable.
+
+---
+
+```{r session-info, child="session_info.Rmd"}
+```
+
+---
+
+```{r last-slide, child="last-slide.Rmd"}
+```

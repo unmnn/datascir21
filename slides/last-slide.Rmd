@@ -1,0 +1,7 @@
+class: last-slide, center, bottom
+
+# Thank you! Questions?
+
+&nbsp;
+
+.courtesy[&#x1F4F7; Photo courtesy of Stefan Berger]

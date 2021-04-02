@@ -1,0 +1,866 @@
+---
+title: "Tips for effective visualizations"
+subtitle: "Data Science with R &#183; Summer 2021"
+author: "Uli Niemann"
+session: "02"
+institute: "Knowledge Management & Discovery Lab"
+# date: "2016/12/12 (updated: `r Sys.Date()`)"
+output:
+  xaringan::moon_reader:
+    css: ["default", "assets/css/my-theme.css", "assets/css/my-fonts.css"]
+    seal: false # custom title slide
+    lib_dir: libs
+    nature:
+      # highlightStyle: solarized-light
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: true
+      ratio: "16:9"
+params:
+  url: "https://brain.cs.uni-magdeburg.de/kmd/DataSciR/"
+---
+
+```{r setup, include=FALSE}
+source("global-slide-settings.R", local = knitr::knit_global(), encoding = "UTF-8")
+
+library(tidyverse)
+
+# directory of generated figures
+knitr::opts_chunk$set(fig.path = "figures/_gen/02/")
+# directory of included figures
+fig_path <- "figures/"
+
+xaringanExtra::use_panelset()
+xaringanExtra::use_tile_view()
+
+data(attrition, package = "modeldata")
+attrition <- as_tibble(attrition)
+```
+
+```{r title-slide, child="title-slide.Rmd"}
+```
+
+---
+
+## Keep it simple
+
+.pull-left[
+
+```{r pie, echo=FALSE, out.width="100%"}
+knitr::include_graphics(file.path(fig_path, "02-pie.png"))
+```
+
+]
+
+.pull-right[
+
+```{r bar-alternative, echo = FALSE, fig.width=15/2.54, fig.height = 15/2.54}
+att_per <- attrition %>%
+  mutate(JobRole = fct_rev(fct_infreq(JobRole))) %>%
+  count(JobRole) %>%
+  mutate(perc = n / sum(n))
+ggplot(att_per, aes(x = perc, y = JobRole)) +
+  scale_x_continuous(labels = scales::percent) +
+  geom_col() +
+  labs(x = NULL, y = NULL)
+```
+
+]
+
+.footnote[.font80[Slides adapted from: [Introduction to Data Science Course 2020 @ Univ. Edinburgh](https://ids-s1-20.github.io/slides/week-05/w5-d02-effective-dataviz/w5-d02-effective-dataviz.html#1)]]
+
+???
+
+left: created with MS Excel
+
+---
+
+## Use color to draw attention
+
+.pull-left[
+
+```{r bar-color-1, echo = FALSE, fig.width=15/2.54, fig.height = 15/2.54}
+ggplot(att_per, aes(x = perc, y = JobRole, fill = JobRole)) +
+  geom_col() +
+  labs(x = NULL, y = NULL) +
+  guides(fill = FALSE) 
+```
+
+]
+
+.pull-right[
+
+```{r bar-color-2, echo = FALSE, fig.width=15/2.54, fig.height = 15/2.54}
+ggplot(att_per, aes(x = perc, y = JobRole, fill = JobRole == "Research_Scientist")) +
+  geom_col() +
+  scale_fill_manual(values = c("gray80", "firebrick3")) +
+  labs(x = NULL, y = NULL) +
+  guides(fill = FALSE)
+```
+
+]
+
+---
+
+## Tell a story
+
+```{r bundesliga, eval=FALSE, echo = FALSE}
+# https://datahub.io/sports-data/german-bundesliga#resource-german-bundesliga_zip
+df <- dir(here::here("data", "data"), pattern = "csv", full.names = TRUE) %>%
+  map(read.csv) %>%
+  bind_rows() %>%
+  as_tibble() %>%
+  mutate(Date = str_replace(Date, "(.{2})/(.{2})/(.{2,4})", "\\3-\\2-\\1")) %>%
+  mutate(Date = ifelse(nchar(Date) == 8, paste0("20", Date), Date)) %>%
+  mutate(Date = lubridate::ymd(Date))
+write_rds(df, here::here("data", "bundesliga.rds"))
+```
+
+```{r bundesliga-load, echo=FALSE}
+bundesliga <- read_rds(here::here("data", "bundesliga.rds"))
+bl <- bundesliga %>%
+  mutate(ftg = FTHG + FTAG) %>%
+  # mutate(ftg = HST + AST) %>%
+  select(date = Date, ftg) %>%
+  mutate(year = lubridate::year(date)) %>%
+  mutate(month = lubridate::month(date)) %>%
+  filter(between(year, 2012, 2019)) %>%
+  group_by(year, month) %>%
+  summarize(avg_ftg = mean(ftg)) %>%
+  ungroup() 
+```
+
+.panelset[
+
+.panel[.panel-name[Does the year matter?]
+
+```{r bundesliga-ftg-color, fig.width=25/2.54, fig.height = 14/2.54, echo = FALSE}
+ggplot(bl %>% mutate(year = as.factor(year)), aes(x = month, y = avg_ftg, group = year, color = year)) +
+  scale_x_continuous(breaks = 1:12, labels = month.abb) +
+  geom_line(size = 1) +
+  scale_color_viridis_d() +
+  labs(
+    x = NULL, y = "Average FTG per match",
+    color = NULL,
+    title = "Monthly average full time goals (FTG) in Bundesliga matches",
+    caption = "Source: https://datahub.io/sports-data/german-bundesliga"
+  )
+```
+
+]
+.panel[.panel-name[Plot annotation]
+
+```{r bundesliga-ftg-label, fig.width=25/2.54, fig.height = 14/2.54, echo = FALSE}
+ggplot(bl %>% mutate(year = as.factor(year)), aes(x = month, y = avg_ftg, group = year)) +
+  scale_x_continuous(breaks = 1:12, labels = month.abb) +
+  scale_y_continuous(limits = c(2,4)) +
+  geom_vline(xintercept = 5, size = 1.5, color = "gray50") +
+  geom_line(size = 1, color = "#2b8cbe") +
+  annotate(
+    "text", family = "Fira Sans", size = 16/.pt, lineheight = 0.9,
+    x = 5.75, y = 4, label = "Overall, the average FTG is highest in\nMay, which is the month of the last\nmatches in a Bundesliga season.",
+    hjust = 0, vjust = 1
+  ) +
+  labs(
+    x = NULL, y = "Average FTG per match",
+    color = NULL,
+    title = "Monthly average full time goals (FTG) in Bundesliga matches (2012 - 2019)",
+    caption = "Source: https://datahub.io/sports-data/german-bundesliga"
+  ) +
+  theme(plot.title.position = "plot") +
+  theme(plot.title = element_text(size = rel(1.1)))
+```
+
+]
+
+]
+
+
+
+```{r read-births, eval = FALSE, echo = FALSE}
+# number of births per month in New York city, from January 1946 to December 1959
+births <- scan("http://robjhyndman.com/tsdldata/data/nybirths.dat") %>%
+matrix(ncol = 12, byrow = TRUE)
+row.names(births) <- 1946:1959
+colnames(births) <- month.abb
+
+dfb <- as_tibble(births) %>%
+  mutate(year = as.integer(row.names(births)), .before = 1)
+write_rds(dfb, here::here("data", "nyc_births.rds"))
+```
+
+```{r load-births, eval = FALSE, echo = FALSE}
+# Problem with these data: there is also a yearly trend (more babies were born), so here it actually makes sense to show the year.
+nyc_births <- read_rds(here::here("data", "nyc_births.rds"))
+nyc_births %>%
+  pivot_longer(cols = -year, names_to = "month", values_to = "n_births") %>%
+  mutate(month = factor(month, levels = month.abb)) %>%
+  # filter(year <= 1955) %>%
+  ggplot(aes(month, n_births * 1000)) +
+  geom_line(aes(color = as.factor(year), group = as.factor(year)))
+```
+
+---
+
+## Principles for effective visualizations
+
+.font130[
+
+&#x1F522; Order matters
+
+&#x1F504; Put long categories on the y-axis
+
+&#x1F4D0; Keep scales consistent
+
+&#x1F3A8; Select meaningful colors
+
+&#x1F3F7;&#xFE0F; Use meaningful and nonredundant labels
+
+]
+
+---
+
+## Alphabetical order is rarely ideal
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+```{r poll-bar-2, fig.width=8, echo=FALSE}
+library(gapminder)
+l97 <- filter(gapminder, year == 2007, lifeExp > 70)
+
+ggplot(l97, aes(x = continent)) +
+  geom_bar() 
+```
+
+]
+
+.panel[.panel-name[Code]
+
+```{r ref.label="poll-bar-2", eval=FALSE}
+```
+
+]
+
+]
+
+---
+
+## Order by frequency
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+```{r poll-bar-3, fig.width=8, echo=FALSE}
+ggplot(l97, aes(x = fct_infreq(continent))) +
+  geom_bar() 
+```
+
+]
+
+.panel[.panel-name[Code]
+
+`fct_infreq()`: Reorder factor levels by frequency.
+
+```{r ref.label="poll-bar-3", eval=FALSE}
+```
+
+]
+
+]
+
+---
+
+## Alphabetical order is rarely ideal
+
+```{r umfrage-retrieve, eval=FALSE, echo=FALSE}
+library(rvest)
+umfrage <- read_html("https://www.wahlrecht.de/umfragen/") %>%
+  html_node(".wilko") %>%
+  html_table()
+umfrage[names(umfrage) == ""] <- NULL
+umfrage[length(umfrage)] <- NULL # "Letzte Bundestagswahl"
+
+date_range <- as.character(range(lubridate::dmy(as.character(umfrage[1, ][-1]))))
+
+umfrage <- umfrage %>%
+  filter(Institut %in% c("CDU/CSU", "SPD", "GRÜNE", "FDP", "DIE LINKE", "AfD", "Sonstige")) %>%
+  rename(party = Institut) %>%
+  pivot_longer(cols = -party, names_to = "pollster", values_to = "popularity") %>%
+  mutate(popularity = str_replace(popularity, ",", "\\.")) %>%
+  mutate(popularity = str_remove(popularity, " %")) %>%
+  mutate(popularity = as.double(popularity)) %>%
+  mutate(party = ifelse(party == "Sonstige", "Other", party))
+
+attr(umfrage, "date_range") <- date_range
+
+write_rds(umfrage, here::here("data", "umfrage.rds"))
+```
+
+.panelset[
+.panel[.panel-name[5 Plot]
+
+```{r umfrage-prep-for-plotting-1, include=FALSE}
+umfrage <- read_rds(
+  here::here("data", "umfrage.rds")
+)
+umfrage
+(date_range <- attr(umfrage, "date_range"))
+```
+
+```{r umfrage-prep-for-plotting-2, include=FALSE}
+(date_range_chr <- paste0(
+  date_range, collapse = " - "))
+umfrage_avg <- umfrage %>%
+  group_by(party) %>%
+  summarize(popularity = mean(popularity)) %>%
+  ungroup()
+umfrage_avg
+```
+
+```{r poll-bar-1, fig.width=8, echo=FALSE}
+ggplot(umfrage_avg, aes(x = party, y = popularity)) +
+  geom_col() +
+  labs(
+    x = NULL,
+    y = "Popularity (%)",
+    title = "German parliament election poll",
+    subtitle = glue::glue("Percentages represent average values across 8 polling institutes\nTime period: {date_range_chr}"),
+    caption = "Data source: https://www.wahlrecht.de/umfragen/"
+  ) +
+  theme(plot.subtitle = element_text(size = rel(0.8), face = "italic"))
+```
+
+<!-- subtitle = '"If there were a federal election next Sunday, which party would you vote for?"', -->
+
+.content-box-yellow[
+
+Since we're using `geom_col()` we can't use `fct_infreq()` because every category (i.e. party) appears exactly in one and only one observation. 
+
+
+]
+
+]
+
+.panel[.panel-name[3 Code to prep data]
+
+.pull-left[
+
+```{r ref.label="umfrage-prep-for-plotting-1", eval=TRUE}
+```
+
+]
+
+.pull-right[
+
+```{r ref.label="umfrage-prep-for-plotting-2", eval=TRUE}
+```
+
+]
+
+]
+
+.panel[.panel-name[4 Code for plot]
+
+
+```{r ref.label="poll-bar-1", fig.width=8, eval=FALSE}
+```
+
+]
+
+.panel[.panel-name[1 Poll aggregator website]
+
+<https://www.wahlrecht.de/umfragen/>
+
+```{r wahlrecht-umfrage, echo=FALSE, out.width="80%"}
+knitr::include_graphics(file.path(fig_path, "02-wahlrecht-umfrage.png"))
+```
+
+]
+.panel[.panel-name[2 Code to scrape data]
+
+```{r ref.label="umfrage-retrieve", eval=FALSE}
+```
+
+]
+
+]
+
+---
+
+## Order by a second variable
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+```{r poll-bar-4, fig.width=8, echo=FALSE}
+ggplot(
+  umfrage_avg, 
+  aes(
+    x = fct_reorder(party, -popularity), #<< 
+    y = popularity
+  )
+) +
+  geom_col() +
+  labs(
+    x = NULL,
+    y = "Popularity (%)",
+    title = "German parliament election poll",
+    subtitle = glue::glue("Percentages represent average values across 8 polling institutes\nTime period: {date_range_chr}"),
+    caption = "Data source: https://www.wahlrecht.de/umfragen/"
+  ) +
+  theme(plot.subtitle = element_text(size = rel(0.8), face = "italic"))
+```
+
+]
+
+.panel[.panel-name[Code]
+
+`fct_reorder()`: Reorder factor levels by another numeric variable. Use `-` to sort in descending order.
+
+```{r ref.label="poll-bar-4", eval=FALSE}
+```
+
+]
+
+]
+
+---
+
+## Custom order
+
+.content-box-gray[
+
+Sometimes you see in election polls that the parties are shown in the order of their vote shares in the previous election. For example, in the 2017 elections the SPD received the second most votes, whereas GRÜNE were only sixth.
+
+]
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+```{r poll-bar-5, fig.width=8, echo=FALSE}
+umfrage_avg <- umfrage_avg %>%
+  mutate(
+    party = fct_relevel(party, #<<
+      "CDU/CSU", "SPD", "AfD", "FDP", "DIE LINKE", "GRÜNE", "Other" #<<
+    ) #<<
+  )
+ggplot(umfrage_avg, aes(x = party, y = popularity)) +
+  geom_col() +
+  labs(
+    x = NULL,
+    y = "Popularity (%)",
+    title = "German parliament election poll",
+    subtitle = glue::glue("Percentages represent average values across 8 polling institutes\nTime period: {date_range_chr}"),
+    caption = "Data source: https://www.wahlrecht.de/umfragen/"
+  ) +
+  theme(plot.subtitle = element_text(size = rel(0.8), face = "italic"))
+```
+
+]
+
+.panel[.panel-name[Code]
+
+`fct_relevel()`: Manually reorder factor levels.
+
+```{r ref.label="poll-bar-5", eval=FALSE}
+```
+
+]
+
+]
+
+---
+
+## Factor levels often need to be cleaned up
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+```{r poll-bar-6, fig.width=5, echo=FALSE}
+ggplot(attrition, aes(x = BusinessTravel)) +
+  geom_bar()
+```
+
+]
+
+.panel[.panel-name[Code]
+
+```{r ref.label="poll-bar-6", eval=FALSE}
+```
+
+]
+
+]
+
+???
+
+- remove "Travel" from factor labels
+
+---
+
+## Clean up labels
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+```{r poll-bar-7, fig.width=5, echo=FALSE}
+attrition <- attrition %>%
+  mutate(
+    BusinessTravel = fct_recode(
+      BusinessTravel,
+      "Frequently" = "Travel_Frequently",
+      "Rarely" = "Travel_Rarely",
+      "Non" = "Non-Travel"
+    )
+  )
+
+
+ggplot(attrition, aes(x = BusinessTravel)) +
+  geom_bar()
+```
+
+]
+
+.panel[.panel-name[Code]
+
+`fct_relevel()`: Manually reorder factor levels.
+
+```{r ref.label="poll-bar-7", eval=FALSE}
+```
+
+]
+
+]
+
+---
+
+## Put long and overlapping categories on the y-axis
+
+.pull-left[
+
+Categories on x-axis:
+
+```{r long-cats-y-1, fig.width=5}
+ggplot(
+  umfrage_avg, 
+  aes(x = party, y = popularity)
+) +
+  geom_col()
+```
+
+]
+
+.pull-right[
+
+Categories on y-axis:
+
+```{r long-cats-y-2, fig.width=5}
+ggplot(
+  umfrage_avg, 
+  aes(x = popularity, y = party)
+) +
+  geom_col()
+```
+
+]
+
+---
+
+## Reverse the order of levels
+
+.panelset[
+.panel[.panel-name[`fct_rev()`]
+
+`fct_rev()`: Reverse the order of factor levels
+
+```{r long-cats-y-3, fig.width=5}
+ggplot(umfrage_avg, aes(x = popularity, 
+                        y = fct_rev(party))) + #<<
+  geom_col()
+```
+
+]
+.panel[.panel-name[Via scale setting]
+
+`rev()`: Reverse the order of values (any vector type)
+
+```{r long-cats-y-4, fig.width=5}
+ggplot(umfrage_avg, aes(x = popularity, y = party)) + 
+  geom_col() +
+  scale_y_discrete(limits = rev) #<<
+```
+
+]
+
+]
+
+---
+
+## Before plotting, think about the purpose
+
+.content-box-blue[
+
+**Example:** What is the number and share of women for each education field in the attrition data? 
+
+]
+
+.panelset[
+.panel[.panel-name[Stacked bars]
+
+```{r purpose-1, fig.width = 20/2.54, fig.height = 12/2.54}
+ggplot(attrition, aes(y = EducationField, fill = Gender)) +
+  geom_bar() +
+  theme(legend.position = "bottom")
+```
+
+]
+
+.panel[.panel-name[Filled bars]
+
+```{r purpose-2, fig.width = 20/2.54, fig.height = 12/2.54}
+ggplot(attrition, aes(y = EducationField, fill = Gender)) +
+  geom_bar(position = "fill") +
+  theme(legend.position = "bottom")
+```
+
+]
+
+.panel[.panel-name[Dodged bars]
+
+```{r purpose-3, fig.width = 20/2.54, fig.height = 12/2.54}
+ggplot(attrition, aes(y = EducationField, fill = Gender)) +
+  geom_bar(position = "dodge") +
+  theme(legend.position = "bottom")
+```
+
+]
+
+.panel[.panel-name[Facetted bars]
+
+```{r purpose-4, fig.width = 20/2.54, fig.height = 12/2.54}
+ggplot(attrition, aes(y = Gender, fill = Gender)) +
+  geom_bar() +
+  facet_wrap(~ EducationField) +
+  theme(legend.position = "bottom")
+```
+
+]
+]
+
+???
+
+- because the totals differs between the fields, it is -e.g.- hard to see the percentage of women WITHIN the human resources category.
+- default: position_stack
+- try: position_fill
+
+---
+
+## Avoid redundancy
+
+.panelset[
+.panel[.panel-name[High redundancy]
+
+.font130[&#128683; DON'T]
+
+```{r purpose-5, fig.width = 24/2.54, fig.height = 10/2.54}
+ggplot(attrition, 
+  aes(y = Gender, fill = Gender, color = Gender, linetype = Gender, alpha = Gender)) +
+  geom_bar(size = 2) +
+  facet_wrap(~ EducationField) +
+  scale_color_brewer(palette = "Set1")
+```
+
+]
+
+.panel[.panel-name[Low redundancy]
+
+<!-- &#9989; DO -->
+
+```{r purpose-6, fig.width = 20/2.54, fig.height = 12/2.54}
+ggplot(attrition, aes(y = Gender)) +
+  geom_bar() +
+  facet_wrap(~ EducationField)
+```
+
+]
+
+]
+
+---
+
+## Keep scales consistent
+
+.font130[&#128683; DON'T]
+
+```{r consistent-scales-1, fig.width = 20/2.54, fig.height = 12/2.54}
+ggplot(attrition, aes(y = Gender)) +
+  geom_bar() +
+  facet_wrap(~ EducationField, scales = "free_x") #<<
+```
+
+---
+
+## Use meaningful and nonredundant labels
+
+.panelset[
+.panel[.panel-name[Without context]
+
+```{r meaningful-labels-1, fig.width=25/2.54, fig.height=12/2.54}
+ggplot(umfrage_avg, aes(x = party, y = popularity)) +
+  geom_col()
+```
+
+]
+
+.panel[.panel-name[With context]
+
+```{r meaningful-labels-2, fig.width=25/2.54, fig.height=12/2.54}
+ggplot(umfrage_avg, aes(x = party, y = popularity)) +
+  geom_col()+
+  labs(x = NULL, y = "Popularity (%)", title = "German parliament election poll",
+    subtitle = glue::glue("Percentages represent average values across 8 polling institutes\nTime period: {date_range_chr}"),
+    caption = "Data source: https://www.wahlrecht.de/umfragen/")
+```
+
+]
+
+]
+
+---
+
+## Select meaningful colors
+
+.panelset[
+.panel[.panel-name[Plot]
+
+```{r redundancy-1, fig.width=25/2.54, fig.height=14/2.54, echo=FALSE}
+umfrage_avg <- umfrage_avg %>% mutate(party = fct_reorder(party, -popularity))
+ggplot(umfrage_avg, aes(x = party, y = popularity, fill = party)) +
+  geom_col() +
+  labs(x = NULL, y = "Popularity (%)", title = "German parliament election poll",
+    subtitle = glue::glue("Percentages represent average values across 8 polling institutes\nTime period: {date_range_chr}"),
+    caption = "Data source: https://www.wahlrecht.de/umfragen/") +
+  theme(plot.subtitle = element_text(size = rel(0.8), face = "italic")) +
+  scale_fill_manual(values = c("CDU/CSU" = "#000000", "GRÜNE" = "#1FAF12", "SPD" = "#E30013", #<<
+"AfD" = "#009DE0", "DIE LINKE" = "#DF007D", "FDP" = "#FFED00", "Other" = "gray80")) #<<
+```
+
+]
+
+.panel[.panel-name[Code]
+
+```{r ref.label="redundancy-1", fig.width=25/2.54, fig.height=14/2.54, eval=FALSE}
+```
+
+]
+
+]
+
+---
+
+## Be selective with redundancy
+
+.panelset[
+.panel[.panel-name[Plot]
+
+```{r redundancy-2, fig.width=21/2.54, fig.height=14/2.54, echo=FALSE}
+umfrage_avg <- umfrage_avg %>% mutate(party = fct_reorder(party, -popularity))
+ggplot(umfrage_avg, aes(x = party, y = popularity, fill = party)) +
+  geom_col() +
+  labs(x = NULL, y = "Popularity (%)", title = "German parliament election poll",
+    subtitle = glue::glue("Percentages represent average values across 8 polling institutes\nTime period: {date_range_chr}"),
+    caption = "Data source: https://www.wahlrecht.de/umfragen/") +
+  theme(plot.subtitle = element_text(size = rel(0.8), face = "italic")) +
+  scale_fill_manual(values = c("CDU/CSU" = "#000000", "GRÜNE" = "#1FAF12", "SPD" = "#E30013",
+"AfD" = "#009DE0", "DIE LINKE" = "#DF007D", "FDP" = "#FFED00", "Other" = "gray80")) +
+  guides(fill = FALSE)
+```
+
+]
+
+.panel[.panel-name[Code]
+
+```{r ref.label="redundancy-2", fig.width=25/2.54, fig.height=14/2.54, eval=FALSE}
+```
+
+]
+
+]
+
+---
+
+## Select meaningful colors
+
+.panelset[
+.panel[.panel-name[No color]
+
+```{r ref.label="purpose-6", fig.width = 20/2.54, fig.height = 12/2.54, echo = FALSE}
+```
+
+]
+
+.panel[.panel-name[ColorBrewer website]
+
+```{r colorbrewer-website, echo=FALSE, out.width="100%"}
+knitr::include_url(
+  "https://colorbrewer2.org",
+  height = "500px"
+)
+```
+
+]
+
+.panel[.panel-name[Manual colors]
+
+```{r purpose-7, fig.width = 20/2.54, fig.height = 12/2.54}
+ggplot(attrition, aes(y = fct_rev(Gender), fill = Gender)) +
+  geom_bar() +
+  facet_wrap(~ EducationField) +
+  scale_fill_manual(values = c("Female" = "#7fc97f", "Male" = "#fdc086")) + #<<
+  guides(fill = FALSE)
+```
+
+]
+
+.panel[.panel-name[RColorBrewer package]
+
+```{r colorbrewer, eval=FALSE}
+RColorBrewer::display.brewer.all()
+```
+
+```{r colorbrewer-1, echo=FALSE, out.width="45%"}
+knitr::include_graphics(file.path(fig_path, "02-colorbrewer.png"))
+```
+
+]
+
+.panel[.panel-name[Palette]
+
+```{r purpose-8, fig.width = 20/2.54, fig.height = 12/2.54}
+ggplot(attrition, aes(y = fct_rev(Gender), fill = Gender)) +
+  geom_bar() +
+  facet_wrap(~ EducationField) +
+  scale_fill_brewer(palette = "Pastel2") + #<<
+  guides(fill = FALSE)
+```
+
+]
+
+]
+
+---
+
+```{r session-info, child="session_info.Rmd"}
+```
+
+---
+
+```{r last-slide, child="last-slide.Rmd"}
+```

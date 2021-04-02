@@ -1,0 +1,180 @@
+---
+title: "R Markdown"
+output:
+  html_document:
+    fig_width: 6
+    fig_height: 5
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The goal of this exercise is to make yourself familiar with R Markdown documents.
+
+## Working with R Markdown in RStudio
+
+- Click on the **Knit** button to render a HTML file. Locate the folder of 
+the HTML file in the "Files" tab of RStudio. 
+Try to knit the rmd file with the Keyboard shortcut **Ctrl**+**Shift**+**K**.
+- Click on the small downwards arrow right to the **Knit** button and render the document as Word and PDF output, respectively.
+- Click on the gear wheel icon right to the **Knit** button to explore various settings and format options.
+
+What happens when you click on the green arrow at the right of the code chunk with the label "pressure" below? 
+(You can accomplish the same by moving the cursor into the code chunk and then pressing **Ctrl**+**Shift**+**Enter**.) 
+(-> [**Notebook mode**](https://bookdown.org/yihui/rmarkdown/notebook.html))
+
+## Understanding Markdown syntax
+
+In this document, locate the words/parts of a sentence that are written 
+
+- in bold face,
+- in italics,
+- as headers of level 2,
+- as inline code.
+
+Consult the _Markdown Quick Reference_ in RStudio and add the following image of the Magdeburg cathedral using Markdown syntax: <https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Magdeburg%2C_domtsjerke.jpg/512px-Magdeburg%2C_domtsjerke.jpg>.
+
+## Important Knitr chunk options
+
+Consider the code chunk `boxplot-iris-species`. 
+Knit the document once with each combination of the chunk options `echo` and `eval` to understand their impact on the output in the rendered document.
+
+```{r boxplot-iris-species, echo = TRUE, eval = TRUE}
+ggplot2::ggplot(iris, ggplot2::aes(x = Species, y = Sepal.Length)) +
+  ggplot2::geom_boxplot()
+```
+
+Inspect the output of the following code chunk `faithful`.
+
+```{r faithful}
+library(tidyverse)
+ggplot() + 
+  geom_contour_filled(
+    data = faithfuld, 
+    aes(eruptions, waiting, z = density), 
+    bins = 10
+  ) + 
+  geom_point(
+    data = faithful, 
+    aes(eruptions, waiting), 
+    color = "white", alpha = 0.75
+  ) +
+  guides(fill = FALSE) + 
+  theme_minimal(base_size = 18)
+```
+
+- Find a way to get rid of the console `message` when the `tidyverse` package is loaded. 
+- Run the "faithful" code chunk separately in Notebook mode. How can you interact with the output?
+- Change the figure width to 30 cm. Rerender the document and inspect the result.
+
+## The setup chunk
+
+Understand the purpose of the _setup_ code chunk by performing the following actions:
+
+- Restart the session. Remove the line `library(tidyverse)` from the code chunk `faithful`. 
+Add the line `library(ggplot2)` in setup chunk. 
+Try to run the `faithful` code chunk directly  without running the previous code chunks. Does it still work?
+- Restart the session. 
+Cut `library(ggplot2)` from the setup chunk and place it into a new unnamed chunk (shortcut **Ctrl+Alt+I**) beneath the `faithful` chunk. 
+Try to run the `faithful` code chunk.
+Does it (still) work?
+- Restart the session. 
+Place the unnamed code chunk right above the `faithful` chunk. 
+Try to run the `faithful` code chunk. 
+Does it (still) work?
+
+## Caching
+
+The following code chunk `heavy-computing` runs time-consuming code.
+
+```{r heavy-computing, eval = FALSE}
+tic <- Sys.time() # Current system time (before doing heavy computation)
+mean(1:1000000000) # admittedly pointless command :#)
+toc <- Sys.time() # Current system time (after doing heavy computation)
+time_spent <- difftime(toc, tic, units = "secs") # computation time in secs
+```
+
+Below the chunk, add an _inline_ code chunk that prints `time_spent`.
+
+1. Set `eval = TRUE` in the code chunk `heavy-computing`.
+1. Knit the document. What is the value of `time_spent`?
+1. Knit the document again. What is the value of `time_spent`?
+1. Add result caching as code chunk option to `heavy-computing`. 
+Knit the document again. What is the value of `time_spent`?
+1. Knit the document again. What is the value of `time_spent`?
+
+## YAML header
+
+- In the YAML header, add the fields "author" and "date". Set the values so 
+that in the rendered output document, your name and the current date (`Sys.date()`) 
+will be shown.
+- Change the document visual theme of the HTML document. 
+To do so, inspect the documentation of `?html_document` to find out which themes can be chosen. 
+Go to <https://bootswatch.com/> to see a preview of the available themes and pick 
+the theme you like most. 
+
+## References and bibliography
+
+_Make the citations in the following text fragment work! _
+
+Lorem [@latexcompanion] ipsum [@knuthwebsite] dolor sit amet [@einstein].
+
+- Uncomment the following bibtex snippets (**Ctrl**+**Shift**+**C**) and copy them into a new text file `refs.bib` placed in the same folder as this R Markdown document.
+- Add to the YAML header: `bibliography: refs.bib`.
+- Knit the document. The bibliography is automatically inserted at the end of the document.
+- Optionally, you can modify the citation style. For example, you can search for styles on <https://www.zotero.org/styles> and download the corresponding `.csl` files. After placing the file into the folder of the R Markdown document, you add in the YAML header: `csl: <NAME>.csl` 
+
+For more information, consult: <https://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html>
+
+<!-- @article{einstein, -->
+<!--     author =       "Albert Einstein", -->
+<!--     title =        "{Zur Elektrodynamik bewegter K{\"o}rper}. ({German}) -->
+<!--         [{On} the electrodynamics of moving bodies]", -->
+<!--     journal =      "Annalen der Physik", -->
+<!--     volume =       "322", -->
+<!--     number =       "10", -->
+<!--     pages =        "891--921", -->
+<!--     year =         "1905", -->
+<!--     DOI =          "http://dx.doi.org/10.1002/andp.19053221004" -->
+<!-- } -->
+
+<!-- @book{latexcompanion, -->
+<!--     author    = "Michel Goossens and Frank Mittelbach and Alexander Samarin", -->
+<!--     title     = "The \LaTeX\ Companion", -->
+<!--     year      = "1993", -->
+<!--     publisher = "Addison-Wesley", -->
+<!--     address   = "Reading, Massachusetts" -->
+<!-- } -->
+
+<!-- @misc{knuthwebsite, -->
+<!--     author    = "Donald Knuth", -->
+<!--     title     = "Knuth: Computers and Typesetting", -->
+<!--     url       = "http://www-cs-faculty.stanford.edu/\~{}uno/abcde.html" -->
+<!-- } -->
+
+----------------------
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Bibliography

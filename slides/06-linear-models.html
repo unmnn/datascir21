@@ -1,0 +1,2767 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Linear models</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Uli Niemann" />
+    <script src="libs/header-attrs/header-attrs.js"></script>
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/panelset/panelset.css" rel="stylesheet" />
+    <script src="libs/panelset/panelset.js"></script>
+    <link href="libs/tile-view/tile-view.css" rel="stylesheet" />
+    <script src="libs/tile-view/tile-view.js"></script>
+    <script src="libs/kePrint/kePrint.js"></script>
+    <link href="libs/lightable/lightable.css" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/css/my-theme.css" type="text/css" />
+    <link rel="stylesheet" href="assets/css/my-fonts.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+
+
+
+
+
+class: title-slide, center, bottom
+
+# 06 - Linear models
+
+## Data Science with R &amp;#183; Summer 2021
+
+### Uli Niemann &amp;#183; Knowledge Management &amp; Discovery Lab
+
+#### [https://brain.cs.uni-magdeburg.de/kmd/DataSciR/](https://brain.cs.uni-magdeburg.de/kmd/DataSciR/)
+
+.courtesy[&amp;#x1F4F7; Photo courtesy of Ulrich Arendt]
+
+---
+
+
+## Bivariate relationships
+
+Example data: **father-son dataset** (1078 Measurements of the height of a father and his son.)
+
+.pull-left70[
+
+```r
+library(tidyverse)
+father_son &lt;- UsingR::father.son %&gt;%
+  as_tibble() %&gt;%
+  mutate(across(everything(), ~ . * 2.54)) # convert from inch to cm
+father_son
+```
+
+```
+## # A tibble: 1,078 x 2
+##    fheight sheight
+##      &lt;dbl&gt;   &lt;dbl&gt;
+##  1    165.    152.
+##  2    161.    161.
+##  3    165.    161.
+##  4    167.    159.
+##  5    155.    163.
+##  6    160.    163.
+##  7    166.    163.
+##  8    164.    163.
+##  9    168.    164.
+## 10    170.    163.
+## # ... with 1,068 more rows
+```
+]
+
+.pull-right30[
+&lt;img src="figures/06-heights.png" width="100%" /&gt;
+]
+
+.content-box-yellow[
+
+_How can we summarize the relationship between the two variables `fheight` and `sheight`?_
+
+]
+
+???
+
+- series of three meetings where we discuss regression and classification concepts and algorithms
+- today, mother of all regression methods, linear regression
+- lin. Reg.: very popular methods in a lot domains, medical research 
+  - exists for a long time, and relatively simple, but: 
+  - a lot of modern methods build upon linear regression -&gt; generalization or extensions of linear regression
+  - understanding how to use lin. regression is a good starting point in order to be capable of using more advanced techniques
+- LR can be used to assess the relationship between two or more variables
+- here, we have: ca. 1000 height measurements of fathers and their sons
+
+---
+
+## Summary statistics
+
+We could describe the relationship between `fheight` and `sheight` with **mean** and **standard deviation**:
+
+
+```r
+father_son %&gt;% 
+  summarize(
+    avg_height_father = mean(fheight), 
+    sd_height_father = sd(fheight), 
+    avg_height_son = mean(sheight), 
+    sd_height_son = sd(sheight)
+  )
+```
+
+```
+## # A tibble: 1 x 4
+##   avg_height_father sd_height_father avg_height_son sd_height_son
+##               &lt;dbl&gt;            &lt;dbl&gt;          &lt;dbl&gt;         &lt;dbl&gt;
+## 1              172.             6.97           174.          7.15
+```
+
+.content-box-yellow[
+
+Are mean and standard deviation sufficient?
+
+]
+
+---
+
+## Visualizing bivariate relationships with...
+
+.panelset[
+.panel[.panel-name[...scatterplots]
+
+
+```r
+ggplot(father_son, aes(x = fheight, y = sheight)) + 
+  geom_point() +
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+&lt;img src="figures/_gen/06/father-son-scatter-1.png" width="425.196850393701" /&gt;
+
+]
+.panel[.panel-name[...boxplots]
+
+.pull-left60[
+
+`ggplot2::cut_interval()`: convert numerical vector into factor by discretizing the values into `n` groups of equal range 
+
+
+```r
+father_son %&gt;% 
+  mutate(fheight = cut_interval(fheight, n = 5)) %&gt;%
+  ggplot(aes(x = fheight, y = sheight)) + 
+  geom_boxplot() +
+  labs(x = "Father's height [cm]", 
+       y = "Son's height [cm]")
+```
+
+]
+
+.pull-right40[
+
+&lt;img src="figures/_gen/06/bla-1.png" width="425.196850393701" /&gt;
+
+]
+
+.content-box-green[
+We observe that generally taller fathers have taller sons.
+]
+
+]
+
+]
+
+???
+
+- conveniently, we only have 2 variables here, so we can visualize them easily
+
+---
+
+## Characterizing bivariate relationships
+
+
+
+
+
+
+
+
+
+.panelset[
+.panel[.panel-name[Linearity]
+
+&lt;img src="figures/06-bivariate-rel-linearity.png" width="90%" /&gt;
+
+]
+
+.panel[.panel-name[Direction]
+
+&lt;img src="figures/06-bivariate-rel-direction.png" width="60%" /&gt;
+
+]
+
+.panel[.panel-name[Strength]
+
+&lt;img src="figures/06-bivariate-rel-strength.png" width="60%" /&gt;
+
+]
+
+.panel[.panel-name[Outliers]
+
+&lt;img src="figures/06-bivariate-rel-outliers.png" width="60%" /&gt;
+
+]
+
+]
+
+---
+
+## Examples of bivariate relationships examples
+
+.panelset[
+.panel[.panel-name[`bdims`]
+
+
+```r
+library(openintro)
+ggplot(bdims, aes(hgt, wgt)) + 
+  geom_point() +
+  labs(x = "Height [cm]", y = "Weight [kg]",
+       title = "Body measurements of 507 people",
+       caption = "Source: bdims data | R package openintro")
+```
+
+&lt;img src="figures/_gen/06/bdims-scatter-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[.panel-name[`mammals`]
+
+
+```r
+ggplot(mammals, aes(x = body_wt, y = brain_wt)) + 
+  geom_point() +
+  labs(x = "Body weight [kg]", y = "Brain weight [kg]",
+       title = "Measurements of 62 species of mammals",
+       caption = "Source: mammals dataset | R package openintro")
+```
+
+&lt;img src="figures/_gen/06/mammals-scatter-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[.panel-name[`mammals` (without outliers)]
+
+
+```r
+mammals %&gt;% 
+* filter(body_wt &lt; 100, brain_wt &lt; 100) %&gt;%
+  ggplot(aes(x = body_wt, y = brain_wt)) + 
+  geom_point() +
+  labs(x = "Body weight [kg]", y = "Brain weight [kg]",
+       title = "Measurements of 39 mammals with\nbody_wt &lt; 100 &amp; brain_wt &lt; 100",
+       caption = "Source: mammals dataset | R package openintro")
+```
+
+&lt;img src="figures/_gen/06/smaller-mammals-scatter-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[.panel-name[`Boston`]
+
+
+```r
+ggplot(MASS::Boston, aes(x = lstat, y = medv)) + 
+  geom_point() +
+  # geom_smooth(formula = y ~ x + I(x^2)) +
+  labs(x = "Share of the lower status of the population [%]",
+       y = "Median home value [1,000US$]",
+       title = "Housing values in suburbs of Boston, MA",
+       caption = "Source: Boston dataset | R package MASS")
+```
+
+&lt;img src="figures/_gen/06/boston-scatter-1.png" width="425.196850393701" /&gt;
+
+]
+
+.panel[.panel-name[`smoking`]
+
+
+```r
+ggplot(smoking, aes(x = age, y = amt_weekdays)) + 
+  geom_point() +
+  labs(x = "Age", y = "Cigarettes smoked per weekday",
+       title = "Frequency of smoking by age (UK; 2000-2009)",
+       caption = "Source: smoking dataset | R package openintro")
+```
+
+```
+## Warning: Removed 1270 rows containing missing values (geom_point).
+```
+
+&lt;img src="figures/_gen/06/smoking-scatter-1.png" width="425.196850393701" /&gt;
+
+]
+
+]
+
+&lt;!-- .content-box-blue[ --&gt;
+
+&lt;!-- **Form? Direction? Strength? Outliers?**   --&gt;
+
+&lt;!-- ] --&gt;
+
+???
+
+bdims:
+
+- form: linear
+- direction: positive
+- strength: moderate to high
+- outliers: _few_
+
+mammals:
+
+- form: ??
+- direction: positive
+- strength: strong
+- outliers: few strong outliers
+
+smaller mammals:
+
+- form: _rather_ linear
+- direction: positive
+- strength: moderate-strong
+- outliers: few strong outliers
+
+Boston: magnitude of the negative relationship is not constant for every value of lstat -&gt; higher decrease in house prices with increasing share of the lower population between 0-10 of lstat
+
+- form: non-linear
+- direction: negative
+- strength: moderate
+- outliers: few
+
+smoking:
+
+- form: ??
+- direction: ??
+- strength: no - very low
+- outliers: ??
+
+---
+
+## Correlation
+
+**(Pearson) Correlation coefficient** `\(\rho\)`: quantification of the **strength** and **direction** of a **linear** **bivariate** relationship. 
+
+`$$\rho = \frac{\text{cov}_{x,y}}{s_x s_y} = \frac{\sum_{i=1}^N (x_i-\bar{x})(y_i-\bar{y})}{\sqrt{\frac{\sum_{i=1}^{N} \left(x_i-\bar{x}\right)^2}{N-1}} \sqrt{\frac{\sum_{i=1}^{N} \left(y_i-\bar{y}\right)^2}{N-1}}}$$`
+with
+
+- `\(\bar{x},\bar{y}\)`: sample mean of `\(x\)`, `\(y\)`
+- `\(s_x, s_y\)`: standard deviation of `\(x\)`, `\(y\)`
+- `\(\text{cov}_{x,y}\)`: covariance of `\(x\)` and `\(y\)`
+- `\(N\)`: number of observations
+
+???
+
+- a crude measure of the relationship between variables is the covariance
+- if we standardize this value we get Pearson's correlation coefficient
+- numerator: quantifies the sum of products of the squared deviations from the mean for x and y
+- denominator: product of standard deviations of x and y 
+
+---
+
+## Interpretation
+
+&amp;nbsp;
+
+&amp;nbsp;                | Direction                        | Description
+:-------------------- | :------------------------------- | :----------------------------
+`\(\rho&gt;0\)`              | **positive linear relationship** | _Both variables are always above the mean or below the mean together._
+`\(\rho&lt;0\)`              | **negative linear relationship** | _The variables move in opposite directions_. 
+
+&amp;nbsp;
+
+&amp;nbsp;                        | Strength (rules of thumb)
+:---------------------------- | :-------------------------------------
+`\(\rho\approx 0\)`               | **no linear correlation** (the variables are independent)
+`\(\text{abs}(\rho)\approx 0.1\)` | **weak relationship**
+`\(\text{abs}(\rho)\approx 0.3\)` | **moderate relationship**
+`\(\text{abs}(\rho)\approx 0.5\)` | **strong relationship**
+`\(\text{abs}(\rho)\approx 1\)`   | **perfect linear correlation** (the variables are dependent)
+
+
+???
+- correlation coefficient has to lie between -1 and 1
+- sign: direction
+- magnitude: strength
+- rules of thumb regarding the strength of the relationship: +-0.1: low strength, +-0.3 moderate strength, +-0.5 high strength
+
+---
+
+## Correlation examples
+
+Six examples of bivariate distributions with different correlation coefficients:
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/06/cor-examples-1.png" width="850.393700787402" /&gt;
+
+]
+.panel[.panel-name[Code]
+
+
+```r
+library(purrr)
+n &lt;- 250 # Sample size
+cors &lt;- c(-0.9, -0.5, 0, 0.5, 0.9, 0.99) # correlation coefficients
+dat &lt;- map_dfr(cors, function(r) {
+  # Draw random sample from bivariate normal distribution with
+  # mean=0, sd=1 and covar=r
+  mat_mvrnorm &lt;- MASS::mvrnorm(n, c(0,0), matrix(c(1,r,r,1),2,2))
+  tibble(r = r, x = mat_mvrnorm[, 1], y = mat_mvrnorm[, 2])
+})
+ggplot(dat, aes(x,y)) +
+  facet_wrap(~r, labeller = as_labeller(function(x){
+    latex2exp::TeX(paste0("$\\rho$ = ", x), output = "text")
+  }, default = label_parsed)) + 
+  geom_point() +
+  geom_vline(xintercept = 0, linetype = 2) + 
+  geom_hline(yintercept = 0, linetype = 2)
+```
+
+]
+
+]
+
+???
+
+- 1, 5,6: starker linearer Zusammenhang
+- 1: negativ, 5,6: positive
+- 2,4: moderater linearer Zusammenhang
+- 3: unkorrelierte Variablen
+
+---
+
+## Computing correlation coefficients with `R`
+
+We can calculate the correlation coefficient in `R` using `stats::cor()`:
+
+
+```r
+cor(x, y = NULL, use = "everything", method = "pearson")
+```
+
+- `x`: numeric variable/ data frame/ matrix
+- `y`: another numeric variable (optional)
+- `use`: handling of missing values
+  - `"everything"` returns `NA` if any of the two variables has missing values
+  - `"all.obs"` returns an error if there are any missing values in the data
+  - `"complete.obs"` computes correlations only from cases without missing values
+  - `"pairwise.complete.obs"` computes correlations between pairs of variables only from cases without missing values for those two variables
+- `method`: 
+  - `"pearson"`: parametric, use for normally distributed data
+  - `"spearman"`: non-parametric, use for non-normally distributed data
+  - `"kendall"`: non-parametric, use for _smallish_ non-normally distributed data
+
+???
+
+- kendall's tau: also when you have a small dataset with a large number of tied ranks
+
+---
+
+## Correlation: father-son data
+
+.pull-left[
+
+Pearson correlation coefficient for father-son data:
+
+
+```r
+rho &lt;- 
+  cor(father_son$fheight, father_son$sheight)
+rho
+```
+
+```
+## [1] 0.5013383
+```
+
+]
+
+.pull-right[
+
+&lt;img src="figures/_gen/06/father-son-scatter-cor-1.png" width="425.196850393701" /&gt;
+
+
+]
+
+???
+
+- by means of the rho we can be more precise regarding strength and direction of the relationship between fathers and sons
+- 0.5 moderate linear correlation
+- generally, taller fathers get taller sons, smaller fathers get smaller sons, BUT
+- there are a few cases where this statement doesn't hold true
+- some tall fathers get small sons and some small fathers get tall sons
+
+---
+
+## Use correlation for linear relationships only
+
+.content-box-yellow[
+
+&amp;#x26A0;&amp;#xFE0F; Correlation is not always an appropriate summary of the relationship between a pair of variables.
+
+]
+
+
+This is illustrated by the famous [Anscombe's quartet](https://en.wikipedia.org/wiki/Anscombe%27s_quartet) which comprises four two-dimensional datasets with a correlation of `\(\rho=0.82\)` between the input features:
+
+.pull-left[
+
+&lt;table class="table" style=""&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:right;"&gt; x1 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; x2 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; x3 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; x4 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; y1 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; y2 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; y3 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; y4 &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 10 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 10 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 10 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8.04 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 9.14 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7.46 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 6.58 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 6.95 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8.14 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 6.77 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 5.76 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 13 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 13 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 13 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7.58 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8.74 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 12.74 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7.71 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 9 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 9 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 9 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8.81 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8.77 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7.11 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8.84 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 11 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 11 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 11 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8.33 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 9.26 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7.81 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8.47 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 14 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 14 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 14 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 9.96 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8.10 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8.84 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7.04 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 6 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 6 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 6 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7.24 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 6.13 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 6.08 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 5.25 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 4 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 4 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 4 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 19 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 4.26 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 3.10 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 5.39 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 12.50 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 12 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 12 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 12 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 10.84 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 9.13 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8.15 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 5.56 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 7 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 4.82 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7.26 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 6.42 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7.91 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 5 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 5 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 5 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 5.68 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 4.74 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 5.73 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 6.89 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+]
+
+.pull-right[
+
+.font80[
+
+
+```
+## # A tibble: 4 x 6
+##   group x_mean  x_sd y_mean  y_sd   rho
+##   &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1 1          9  3.32   7.50  2.03 0.816
+## 2 2          9  3.32   7.50  2.03 0.816
+## 3 3          9  3.32   7.5   2.03 0.816
+## 4 4          9  3.32   7.50  2.03 0.817
+```
+
+]
+
+&lt;img src="figures/_gen/06/anscombe-plot-1.png" width="510.236220472441" /&gt;
+
+]
+
+???
+
+- je 10 Instanzen
+- je ein Wert für x und y
+- gleiche Werte für deskriptive Merkmale wie Mittelwert, Standardabweichung
+
+- if we plot the data, we notice that the relationship between x and y is very different across the four datasets
+  - 1: relatively high linear relationship -&gt; rho is approriate here 
+  - 2: non-linear relationship 
+  - 3: if we remove the outlier, we would have a perfect correlation with rho of 1
+  - 4: inverse to 3: basically, there is no relationship between variables, but the single outlier is responsible for the high correlation coefficient
+  - 3: outlier leads to a reduction of the correlation coefficient
+  - 4: whereas in 4, the outlier leads to an increase of the correlation coefficient
+
+---
+
+## Spurious correlations
+
+&lt;img src="figures/06-spurious_correlation.PNG" width="100%" style="display: block; margin: auto;" /&gt;
+
+.footnote[Figure source: http://www.tylervigen.com/spurious-correlations. Last accessed 17.02.2021.]
+
+???
+
+- But be careful when interpreting rho
+- line chart shows an almost perfect correlation
+- black line: number of suicides by hanging, strangulation and suffocation from 1999 to 2009
+- red line: US spending on science space and technology
+- spurious correlation: statistically correlate but one does not cause the other
+
+
+- Vorsicht bei der Interpretation des Kor.koef.: In diesem Liniendiagramm wird eine fast perfekte Korrelation dargestellt, auf der einen Seite den Ausgaben der USA für Wissenschaft, Raumfahrt und Technologie, auf der anderen Seite der Anzahl von Selbstmorde durch Hängen, Erwürgen und Ersticken 
+
+- spurious correlation = Scheinkorrelation
+- Ursache und Wirkung überprüfen
+- Hängen, Erwürgen, Ersticken
+- anderes Beispiel: Menschen, die in einem Pool ertrinken und Anzahl von Nicolas-Cage-Filmen pro Jahr
+
+---
+
+## Correlation vs. causation
+
+&lt;img src="figures/06-correlation.png" width="45%" /&gt;
+
+.content-box-yellow[
+
+&amp;#x26A0;&amp;#xFE0F; Correlation does not imply causation.
+
+]
+
+Possible reasons: 
+
+**Confounding/ third-variable problem**: a measured or unmeasured variable affects the results.  
+Example: _Elite college degree &amp;rarr; adult earnings_ (confounder: parental socioeconomic status)
+
+**Direction of causality**: correlation coefficients do not imply the direction of causation.  
+Example: _Chocolate consumption is correlated with acne and vice versa._
+_Chocolate contains ingredients such as fats or sugar causing acne, so chocolate consumption leads to acne, but not the other way around._
+
+.footnote[Figure source: https://xkcd.com/552/]
+
+???
+
+- causation = Kausalität
+- Zusammenhang kann zufällig sein
+- Anwendung für Visual Analytics: Anwendungsexperte überprüft, ob Korrelationen Sinn ergeben
+
+Übungsaufgabe: DisStaUsiR S. 242
+
+---
+
+## Simple Linear Regression
+
+Goal: **predict** a **quantitative** **response** `\(y\)` on the basis of a single **predictor** `\(x\)` 
+
+Terminology:
+
+- `\(y\)`: response / dependent variable
+- `\(x\)`: predictor / independent or explanatory variable
+
+???
+
+- so far, we looked at how to measure relationships between two variables.
+- we take this process a step further and predict one variable from another
+- example: based on the height of the father, try to predict the height of his son 
+- example: try to predict levels of stress from the amount of time until you have to give a talk (negative relationship -&gt; if there's 10 min to go until someone has to give a talk, how anxious will they be)
+
+- rho: Kenngröße für den die Stärke und Richtung von linearen Zusammenhängen
+- wir sind daran interessiert anhand unserer Daten ein Modell zu lernen, das beschreibt, wie groß ein Sohn wird, gegeben der Größe des Vaters.
+- Bei linearer Regression suchen wir nach der Geraden, die den Zusammenhang zwischen 2 Variablen am besten beschreibt.
+
+unabhängig Variable = einfache lineare Regression -&gt; eine Predictor-Variable -&gt; generell kann eine Response-Variable durch mehrere Predictor-Variablen beschrieben werden. Für den Fall wird eine Unabhängigkeitsannahme gemacht.
+
+---
+
+## General statistical model
+
+The value of the **response** is **modeled** as a **function of the predictor** (plus some additional noise).
+
+`$$y = f(x) + \epsilon, \qquad \epsilon \sim N(0, \sigma_{\epsilon})$$`
+
+Example: `\(y = f(x) = 2x + 3\)` is a function with input `\(x\)` (predictor) and output `\(y\)` (response). If `\(x\)` is 4, `\(y\)` is 11, then `\(y = 2 \times 4 + 3 = 11\)`
+
+---
+
+## Simple linear regression
+
+**Simple** linear regression: predict a quantitative response `\(Y\)` on the basis of a **single predictor variable** `\(X\)`
+
+Assumption: model fit is linear, i.e., the data can be summarized with a straight line.
+
+`$$f(x) = \beta_0 + \beta_1 x$$`
+`\(\rightarrow\)` two unknown **parameters**/**coefficients**: **intercept** `\(\beta_0\)` and **slope** `\(\beta_1\)`
+
+
+???
+
+- intercept: Achsenschnittpunkt
+- slope: Anstieg
+
+---
+
+## Best fit line
+
+.panelset[
+
+.panel[.panel-name[Line candidates]
+
+
+```r
+# Manually create some regression lines
+df_reg_lines &lt;- expand_grid(intercept = 82:88, slope = seq(0.4, 0.6, 0.1))
+ggplot(data = father_son, aes(x = fheight, y = sheight)) + 
+  geom_point() +
+* geom_abline(data = df_reg_lines, aes(intercept = intercept, slope = slope), color = "orange") +
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+&lt;img src="figures/_gen/06/best-fit-line-1.png" width="648" /&gt;
+
+]
+.panel[.panel-name[Best fit]
+
+
+```r
+ggplot(data = father_son, aes(x = fheight, y = sheight)) + 
+  geom_point() +
+  geom_abline(data = df_reg_lines, aes(intercept = intercept, slope = slope), color = "orange") + 
+* geom_smooth(method = "lm", size = 1) +
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+&lt;img src="figures/_gen/06/best-fit-line-2-1.png" width="648" /&gt;
+
+]
+
+.panel[.panel-name[Best fit without measure of uncertainty]
+
+
+```r
+ggplot(data = father_son, aes(x = fheight, y = sheight)) + 
+  geom_point() +
+  geom_abline(data = df_reg_lines, aes(intercept = intercept, slope = slope), color = "orange") + 
+  geom_smooth(method = "lm", size = 1,
+*   se = FALSE) +
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+&lt;img src="figures/_gen/06/best-fit-line-3-1.png" width="648" /&gt;
+
+]
+
+]
+
+
+
+???
+
+- expand.grid erstellt ein data frame mit allen möglichen Kombinationen der Input-Vektoren
+
+- geom_smooth automatically creates a linear regression and shows its line 
+- gray area around the line: uncertainty of the line
+- Why does this line fit the data the best?
+- We need a measure to compare different models.
+
+
+---
+
+## Residuals
+
+Fitted values: `\(\hat{Y} = \hat{\beta_0} + \hat{\beta_1}X\)` &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;xrarr;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; **Residuals**: `\(e = Y - \hat{Y}\)`
+
+A residual quantifies the model error for an individual observation by calculating the difference between the actual response value and the predicted response value.
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/06/residuals-1.png" width="648" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+
+```r
+model &lt;- linear_reg() %&gt;%
+  set_engine("lm") %&gt;%
+  fit(sheight ~ fheight, data = father_son)
+father_son %&gt;% 
+  mutate(y_hat = model$fit$coefficients[1] + fheight * model$fit$coefficients[2]) %&gt;%
+  mutate(res_cat = ifelse(y_hat &gt; sheight, "overest", "underest")) %&gt;%
+  ggplot(aes(fheight, sheight)) + 
+  geom_segment(aes(xend = fheight, yend = y_hat, color = res_cat), show.legend = FALSE, size = .25) +
+  geom_point() +
+  annotate("text", x = 150, y = 195, label = "model underestimates true value\n(e &gt; 0)", color = "coral", hjust = 0, size = 5) +
+  annotate("text", x = 192.5, y = 150, label = "model overestimates true value\n(e &lt; 0)", color = "cadetblue2", hjust = 1, size = 5) +
+  scale_color_manual(values = c("cadetblue2", "coral")) +
+  geom_smooth(method = "lm", se = FALSE, size = 1) + 
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+]
+
+]
+
+???
+
+- the term residual as term for model error comes into play
+- please note this head notation
+- I'm using the head notation when I refer to the regression model and its predictions
+- I'm using the notation without heads when I'm referring to the actual values
+- now the goal is, to estimate the values for parameters beta_0 and beta_1, such that the model error is minimized
+- in linear regression, model error is difference between true value of the response and the predicted value of the response
+- in this plot, it is the vertical deviation between the true values shown as point and the corresponding value on the line.
+
+---
+
+## Least squares fitting procedure
+
+Goal: find the values that minimize the distance of the fitted model to the data. 
+
+`\(\rightarrow\)` **Least squares** (LS) equation for `\(N\)` observations of pairs `\((x_i, y_i)\)`:
+
+`$$\min_{\beta_0, \beta_1} RSS=\min_{\beta_0, \beta_1}  \sum_{i=1}^N e_i^2 = \min_{\beta_0, \beta_1}\sum_{i=1}^N \left( y_i - \left(\hat{\beta}_0 +   \hat{\beta}_1 x_{i}\right)\right)^2$$`
+
+- Parameter values of the minimum are referred to as the **least squares estimates (LSE)** `\(\hat{\beta}\)`
+- The loss function is also known as **residual sum of squares** `\(RSS\)`
+
+???
+
+- for the optimal regression line it holds true that the sum of all residuals is equal to 0 AND
+- ... that the line cuts the mean values of x and y
+- least squares estimates is used (Least-Squares-Schätzungen)
+
+---
+
+## Relationship between correlation and regression
+
+Regression line explains that for every standard deviation `\(\sigma_x\)` increase above the average `\(\bar{x}\)`, `\(y\)` grows `\(\rho\)` standard deviations `\(\sigma_y\)` above the average `\(\bar{y}\)`:
+
+`$$\left( \frac{y_i-\bar{y}}{\sigma_y} \right) = \rho \left( \frac{x_i-\bar{x}}{\sigma_x} \right)$$`
+
+--
+
+Example for our father-son dataset, given a father height of `\(x_i\)` = 160 cm:
+
+$$
+`\begin{aligned}
+ \left( \frac{\hat{y_i}-174.46}{7.15} \right) &amp;= 0.5013 \cdot \left( \frac{160-171.93}{6.97} \right) \\
+ \hat{y_i} &amp;= 0.5013 \cdot \left( \frac{160-171.93}{6.97} \right)\cdot 7.15 + 174.46\\
+ \hat{y_i} &amp;= 168.33
+\end{aligned}`
+$$
+
+---
+
+**TODO: tidymodels overview**
+
+## Linear regression in `R`
+
+.panelset[
+
+.panel[.panel-name[Specify model]
+
+
+```r
+library(tidymodels)
+linear_reg()
+```
+
+```
+## Linear Regression Model Specification (regression)
+```
+
+]
+
+.panel[.panel-name[Set engine]
+
+
+```r
+linear_reg() %&gt;%
+  set_engine("lm")
+```
+
+```
+## Linear Regression Model Specification (regression)
+## 
+## Computational engine: lm
+```
+
+]
+
+.panel[.panel-name[Fit model and estimate parameters]
+
+
+```r
+linear_reg() %&gt;%
+  set_engine("lm") %&gt;%
+  fit(formula = sheight ~ fheight, data = father_son) -&gt; model
+model
+```
+
+```
+## parsnip model object
+## 
+## Fit time:  0ms 
+## 
+## Call:
+## stats::lm(formula = sheight ~ fheight, data = data)
+## 
+## Coefficients:
+## (Intercept)      fheight  
+##     86.0720       0.5141
+```
+
+.content-box-blue[
+We specify the regression equation using **formula syntax**:
+
+`response ~ predictor1 + predictor2 + ...` .font80[&amp;nbsp;&amp;nbsp;(Note that we don't use quotation marks here.)]
+
+]
+
+
+]
+
+]
+
+???
+
+- `formula`: a formula with notation `outcome ~ predictor`
+- `~` (tilde) operator means "predicted from"
+- equation notation: Response on left side of the tilde and predictor on right sided of the tilde
+- very flexible -&gt; if we had multiple predictors, we could include them in the equation by using + sign
+- OR log transform predictor or response -&gt; log left parenthesis  name of predictor right parenthesis
+- `data`: name of the data frame which contains the outcome and predictor
+
+.footnote[
+
+ Use `as.formula()` to convert a string to a formula object. 
+
+]
+
+---
+
+## Model output
+
+
+```
+## parsnip model object
+## 
+## Fit time:  0ms 
+## 
+## Call:
+## stats::lm(formula = sheight ~ fheight, data = data)
+## 
+## Coefficients:
+## (Intercept)      fheight  
+##     86.0720       0.5141
+```
+
+`$$\widehat{sheight_i} = 86.0720 + 0.5141 \cdot fheight_i$$`
+
+.content-box-blue[
+
+#### Interpretation:
+
+- **Slope**: For each additional cm the father is taller, the son is expected to be taller, on average, by 0.5141 cm.
+- **Intercept**: A father who is 0 cm tall is expected to have a son that is, on average, 86.0720 cm tall.
+
+]
+
+
+.content-box-green[
+
+For simple linear regression, the relationship between a regression line's slope  `\(\beta_1\)` and the Pearson correlation coefficient `\(\rho\)` between the explanatory variable and the response is: `\(\beta_1=\rho \cdot \frac{s_y}{s_x}\)`. 
+
+]
+
+???
+
+- Interpretation der Koeffizienten: 
+  - positive slope: equal to rho, the taller the father, the taller the son
+  - value = 0.51: If the father was 1 cm taller, then the son would be  0.51 cm taller.
+  - If `\(x\)` and `\(y\)` are standardized, the regression line has intercept 0, but the same slope.
+
+---
+
+## Extrapolation
+
+&lt;img src="figures/06-xkcd_regression.png" width="50%" /&gt;
+
+.content-box-yellow[
+
+&amp;#x26A0;&amp;#xFE0F; Be careful when interpreting linear model predictions for observations beyond the range of the data it was built on.
+
+]
+
+
+.footnote[Figure source: &lt;https://xkcd.com/605/&gt;. Last accessed 17.02.2021.]
+
+???
+
+- comic nicely illustrates that in most cases, linear regression models are useful for the value ranges they are learned on.
+
+---
+
+## Assessing model diagnostics with the `broom` package
+
+.pull-left80[
+
+The `broom` package provides functions to convert model diagnostics into _tidy_ data frames. 
+
+- `tidy()` returns for each coefficient a row with its value, the standard error, `\(t\)`-statistic and p-value.
+- `augment()` adds columns to the original dataset from the model fit, e.g. residuals and influence statistics.
+- `glance()` returns a row with summary statistics, e.g. `\(R^2\)`, degrees of freedom, AIC.
+
+]
+
+.pull-right20[
+
+&lt;img src="figures/06-broom.png" width="100%" /&gt;
+
+]
+
+
+```r
+library(broom) # included in tidymodels
+```
+
+.footnote[
+
+ See `vignette("broom")` for more information.
+
+]
+
+???
+
+- three weeks ago -&gt; tidyverse and its data frame centric functions
+- lm is a very old function and produces an object of a class dedicated for linear regression
+- broom provides some functions to convert the output of lm() function to a data frame
+- e.g. augment, ...
+- fheight und sheight: original values
+- new variables whose names start with a dot . (diagnostic values)
+- .fitted: predicted values of our model
+- .se.fit: standard error of the fitted values
+- .resid: residuals
+- .hat: Leverage/hat values
+- .sigma: residual standard deviation, Residuenstandardabweichung für den Fall dass die Beobachtung vom Modell entfernt wird
+- .cooksd: Cook's distance
+- .std.resid: Standardisiertes Residuum (.resid/standard deviation of residuals)
+
+---
+
+## Tidy model output
+
+
+```r
+linear_reg() %&gt;%
+  set_engine("lm") %&gt;%
+  fit(formula = sheight ~ fheight, data = father_son) %&gt;%
+* tidy()
+```
+
+```
+## # A tibble: 2 x 5
+##   term        estimate std.error statistic  p.value
+##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+## 1 (Intercept)   86.1      4.65        18.5 1.60e-66
+## 2 fheight        0.514    0.0270      19.0 1.12e-69
+```
+
+`$$\widehat{sheight_i} = 86.0720 + 0.5141 \cdot fheight_i$$`
+
+???
+
+- one row for intercept, one row for explanatory variable
+- estimate: beta coefficients / model parameters
+- std.error: uncertainty around the estimates
+- statistic: use estimate and std.error to calculate significance of relationship
+- p.value: standardized value of the statistic between 0 and 1
+
+---
+
+## Assessing the model fit
+
+.panelset[
+.panel[.panel-name[TSS]
+
+A simple **baseline model** is the mean of the response.
+
+
+```r
+(y_hat &lt;- mean(father_son$sheight))
+```
+
+```
+## [1] 174.4575
+```
+
+
+&lt;img src="figures/_gen/06/tss-plot-1.png" width="648" /&gt;
+
+The sum of squared differences between the observed values and the values predicted by the mean is called **total sum of squares `\(TSS\)`**.
+
+]
+.panel[.panel-name[RSS]
+
+The sum of squared differences between the observed values and the values predicted by the linear regression model is called **residual sum of squares `\(RSS\)`**.
+
+&lt;img src="figures/_gen/06/rss-plot-1.png" width="648" /&gt;
+
+]
+.panel[.panel-name[MSS]
+
+The improvement in prediction between the regression model and the mean is shown in the **model sum of squares `\(MSS\)`**. It is the sum of squared differences between the predicted values of the regression model and the mean.
+The value of `\(MSS\)` is large when the regression model is very different to the mean prediction.
+
+&lt;img src="figures/_gen/06/mss-plot-1.png" width="648" /&gt;
+
+]
+.panel[.panel-name[R²]
+
+The proportion of improvement due to the regression model is **the coefficient of determination `\(R^2\)`**. It measures the **share of variability in the response that is captured by the regression model**.
+
+`$$R^2=\frac{MSS}{TSS}=1-\frac{RSS}{TSS}$$`
+
+
+
+
+
+```r
+glance(model)
+```
+
+```
+## # A tibble: 1 x 12
+##   r.squared adj.r.squared sigma statistic  p.value    df logLik   AIC   BIC deviance
+##       &lt;dbl&gt;         &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;
+## 1     0.251         0.251  6.19      361. 1.12e-69     1 -3494. 6993. 7008.   41213.
+## # ... with 2 more variables: df.residual &lt;int&gt;, nobs &lt;int&gt;
+```
+
+&lt;!-- - `\(\hat{\beta}_1\)` is significantly different from 0 &amp;rarr; the father's height must have an effect on the son's height --&gt;
+`\(R^2\)` = 0.25 &amp;rarr; Only 25% of the variation in son height can be explained by father height alone.
+
+It can be concluded that there are other factors that influence the height of sons (possibly mother height, genetic markers, etc.).
+
+]
+
+]
+
+
+???
+
+TSS: 
+
+- we know now that this line is optimal w.r.t to the RSS, so it is better in relation to other lines 
+- useful to have a baseline
+- most basic model is the mean of the response
+- response is independent from predictor
+- regardless of how tall the father is we will always predict 174.5
+
+RSS:
+
+- 25% of the variability of the sons' heights are captured by this line
+- square root of pearson correlation coefficient is R^2 
+- sum((model$fit$fitted.values - mean(father_son$sheight))^2)/sum((father_son$sheight - mean(father_son$sheight))^2)
+-F-ratio? S. 252
+
+## `augment()`
+
+
+```r
+augment(model$fit)
+```
+
+```
+## # A tibble: 1,078 x 8
+##    sheight fheight .fitted .resid     .hat .sigma  .cooksd .std.resid
+##      &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;      &lt;dbl&gt;
+##  1    152.    165.    171. -19.2  0.00179    6.16 0.00860      -3.10 
+##  2    161.    161.    169.  -8.10 0.00335    6.19 0.00289      -1.31 
+##  3    161.    165.    171. -10.0  0.00185    6.18 0.00242      -1.62 
+##  4    159.    167.    172. -12.4  0.00139    6.18 0.00281      -2.01 
+##  5    163.    155.    166.  -2.63 0.00621    6.19 0.000568     -0.426
+##  6    163.    160.    168.  -5.19 0.00361    6.19 0.00128      -0.840
+##  7    163.    166.    171.  -8.66 0.00159    6.19 0.00156      -1.40 
+##  8    163.    164.    171.  -8.04 0.00201    6.19 0.00170      -1.30 
+##  9    164.    168.    172.  -8.22 0.00125    6.19 0.00111      -1.33 
+## 10    163.    170.    174. -11.0  0.000991   6.18 0.00157      -1.78 
+## # ... with 1,068 more rows
+```
+
+- `.fitted`: predicted values
+- `.resid`: residuals
+- `.hat`: Leverage values (degree of outlierness)
+- `.sigma`: residual standard deviation (impact on model fit)
+- `.cooksd`: Cook's distance (effect of deleting a given observation)
+- `.std.resid`: standardized residuals (.resid/standard deviation of residuals)
+
+---
+
+exclude: true
+
+## Statistical significance of fitted coefficients
+
+The `\(t\)`-**statistic** tests the null hypothesis that `\(\beta_1\)` is 0.
+The `\(t\)`-statistic is based on the comparison between the estimated `\(\beta_1\)` value and the amount of error in that estimate.
+
+`$$\begin{align}t&amp;=\frac{\hat{\beta_1}-\hat{\beta_1}^{expected}}{SE(\hat{\beta_1})}\\&amp;=\frac{\hat{\beta_1}}{SE(\hat{\beta_1})}\end{align}$$`
+
+
+???
+
+- to test the 0h, we check, whether our estimate for beta_1 is sufficiently different from 0
+- nominator: beta1_hat - beta1_expected_hat
+- beta-expected term is simply the value of beta that we would expect to obtain if the null hypothesis were true -&gt; can be replaced by 0
+- this depends on the accuracy of our estimate, our standard error
+- The standard error is an estimate of the standard deviation of the coefficient, the amount it varies across cases.
+- t-value is high if our estimate for beta_1 is high and standard error is low
+- if t is very large then it is unlikely to have occurred when there is no effect
+
+
+- values of t have a special distribution that differs according to the degrees of freedom for the test. In regression , the degrees of freedom are n-p-1-&gt; simple linear regression n-2
+
+- Um die 0-Hypothese zu testen, müssen wir überprüfen, ob unsere Schätzung für beta_1 ausreichend weit entfernt von 0 ist, um zu bestätigen, dass beta_1 ungleich 0 ist.
+- hängt von Genauigkeit der Schätzung ab, also Standardfehler. Ein kleiner Standardfehler ist ein Anzeichen dafür das beta_1 unglich 0 ist.
+- dazu berechnen wir den p-Wert anhand der t-Verteilung mit n-2 Freiheitsgeraden (n - 2 Koeffizienten).
+- 0-Hypothese ablehnen, wenn p-Wert kleiner als Signifikanzniveau ist
+
+---
+
+exclude: true
+
+## Predictions
+
+Make predictions on **out-of-sample** observation:
+
+
+```r
+predict(model$fit, newdata = data.frame(fheight = 180))
+```
+
+```
+##        1 
+## 178.6087
+```
+
+ using `broom`: 
+
+
+```r
+augment(model$fit, newdata = data.frame(fheight = 180))
+```
+
+```
+## # A tibble: 1 x 2
+##   fheight .fitted
+##     &lt;dbl&gt;   &lt;dbl&gt;
+## 1     180    179.
+```
+
+???
+
+- Ausgabe als Vektor vs. Data Frame
+
+
+---
+
+## Multiple linear regression
+
+General model: 
+
+$$ Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \ldots +  \beta_i X_p + \epsilon$$
+
+Predicted response equation:
+
+$$ \hat{Y} = \hat{\beta}_0 + \hat{\beta}_1 X_1 + \hat{\beta}_2 X_2 + \ldots +  \hat{\beta}_i X_p$$
+
+???
+
+- Response kann von mehreren Größen abhängig sein -&gt; z. B. Größe des Sohns ist abhängig von Größe des Vaters und der Mutter
+
+---
+
+## Ames Iowa Housing Dataset
+
+.left-column[
+
+&amp;nbsp;
+
+&gt; "Data set contains information from the Ames Assessor’s Office used in 
+computing assessed values for individual residential properties sold in Ames, 
+IA from 2006 to 2010." &amp;mdash; 
+[Dataset documentation](http://jse.amstat.org/v19n3/decock/DataDocumentation.txt)
+
+&amp;nbsp; 
+
+.font80[
+
+De Cock, Dean. "Ames, Iowa: Alternative to the Boston housing data as an end of 
+semester regression project." Journal of Statistics Education 19.3 (2011). 
+[URL](http://jse.amstat.org/v19n3/decock.pdf)
+
+]
+
+]
+
+.right-column[
+
+
+```r
+library(AmesHousing)
+ames &lt;- make_ames() %&gt;% # prepares dataset
+  select(-matches("Qu")) # remove quality columns
+glimpse(ames)
+```
+
+```
+## Rows: 2,930
+## Columns: 74
+## $ MS_SubClass        &lt;fct&gt; One_Story_1946_and_Newer_All_Styles, One_~
+## $ MS_Zoning          &lt;fct&gt; Residential_Low_Density, Residential_High~
+## $ Lot_Frontage       &lt;dbl&gt; 141, 80, 81, 93, 74, 78, 41, 43, 39, 60, ~
+## $ Lot_Area           &lt;int&gt; 31770, 11622, 14267, 11160, 13830, 9978, ~
+## $ Street             &lt;fct&gt; Pave, Pave, Pave, Pave, Pave, Pave, Pave,~
+## $ Alley              &lt;fct&gt; No_Alley_Access, No_Alley_Access, No_Alle~
+## $ Lot_Shape          &lt;fct&gt; Slightly_Irregular, Regular, Slightly_Irr~
+## $ Land_Contour       &lt;fct&gt; Lvl, Lvl, Lvl, Lvl, Lvl, Lvl, Lvl, HLS, L~
+## $ Utilities          &lt;fct&gt; AllPub, AllPub, AllPub, AllPub, AllPub, A~
+## $ Lot_Config         &lt;fct&gt; Corner, Inside, Corner, Corner, Inside, I~
+## $ Land_Slope         &lt;fct&gt; Gtl, Gtl, Gtl, Gtl, Gtl, Gtl, Gtl, Gtl, G~
+## $ Neighborhood       &lt;fct&gt; North_Ames, North_Ames, North_Ames, North~
+## $ Condition_1        &lt;fct&gt; Norm, Feedr, Norm, Norm, Norm, Norm, Norm~
+## $ Condition_2        &lt;fct&gt; Norm, Norm, Norm, Norm, Norm, Norm, Norm,~
+## $ Bldg_Type          &lt;fct&gt; OneFam, OneFam, OneFam, OneFam, OneFam, O~
+## $ House_Style        &lt;fct&gt; One_Story, One_Story, One_Story, One_Stor~
+## $ Overall_Cond       &lt;fct&gt; Average, Above_Average, Above_Average, Av~
+## $ Year_Built         &lt;int&gt; 1960, 1961, 1958, 1968, 1997, 1998, 2001,~
+## $ Year_Remod_Add     &lt;int&gt; 1960, 1961, 1958, 1968, 1998, 1998, 2001,~
+## $ Roof_Style         &lt;fct&gt; Hip, Gable, Hip, Hip, Gable, Gable, Gable~
+## $ Roof_Matl          &lt;fct&gt; CompShg, CompShg, CompShg, CompShg, CompS~
+## $ Exterior_1st       &lt;fct&gt; BrkFace, VinylSd, Wd Sdng, BrkFace, Vinyl~
+## $ Exterior_2nd       &lt;fct&gt; Plywood, VinylSd, Wd Sdng, BrkFace, Vinyl~
+## $ Mas_Vnr_Type       &lt;fct&gt; Stone, None, BrkFace, None, None, BrkFace~
+## $ Mas_Vnr_Area       &lt;dbl&gt; 112, 0, 108, 0, 0, 20, 0, 0, 0, 0, 0, 0, ~
+## $ Exter_Cond         &lt;fct&gt; Typical, Typical, Typical, Typical, Typic~
+## $ Foundation         &lt;fct&gt; CBlock, CBlock, CBlock, CBlock, PConc, PC~
+## $ Bsmt_Cond          &lt;fct&gt; Good, Typical, Typical, Typical, Typical,~
+## $ Bsmt_Exposure      &lt;fct&gt; Gd, No, No, No, No, No, Mn, No, No, No, N~
+## $ BsmtFin_Type_1     &lt;fct&gt; BLQ, Rec, ALQ, ALQ, GLQ, GLQ, GLQ, ALQ, G~
+## $ BsmtFin_SF_1       &lt;dbl&gt; 2, 6, 1, 1, 3, 3, 3, 1, 3, 7, 7, 1, 7, 3,~
+## $ BsmtFin_Type_2     &lt;fct&gt; Unf, LwQ, Unf, Unf, Unf, Unf, Unf, Unf, U~
+## $ BsmtFin_SF_2       &lt;dbl&gt; 0, 144, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ~
+## $ Bsmt_Unf_SF        &lt;dbl&gt; 441, 270, 406, 1045, 137, 324, 722, 1017,~
+## $ Total_Bsmt_SF      &lt;dbl&gt; 1080, 882, 1329, 2110, 928, 926, 1338, 12~
+## $ Heating            &lt;fct&gt; GasA, GasA, GasA, GasA, GasA, GasA, GasA,~
+## $ Heating_QC         &lt;fct&gt; Fair, Typical, Typical, Excellent, Good, ~
+## $ Central_Air        &lt;fct&gt; Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, Y,~
+## $ Electrical         &lt;fct&gt; SBrkr, SBrkr, SBrkr, SBrkr, SBrkr, SBrkr,~
+## $ First_Flr_SF       &lt;int&gt; 1656, 896, 1329, 2110, 928, 926, 1338, 12~
+## $ Second_Flr_SF      &lt;int&gt; 0, 0, 0, 0, 701, 678, 0, 0, 0, 776, 892, ~
+## $ Gr_Liv_Area        &lt;int&gt; 1656, 896, 1329, 2110, 1629, 1604, 1338, ~
+## $ Bsmt_Full_Bath     &lt;dbl&gt; 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1,~
+## $ Bsmt_Half_Bath     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,~
+## $ Full_Bath          &lt;int&gt; 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1,~
+## $ Half_Bath          &lt;int&gt; 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1,~
+## $ Bedroom_AbvGr      &lt;int&gt; 3, 2, 3, 3, 3, 3, 2, 2, 2, 3, 3, 3, 3, 2,~
+## $ Kitchen_AbvGr      &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,~
+## $ TotRms_AbvGrd      &lt;int&gt; 7, 5, 6, 8, 6, 7, 6, 5, 5, 7, 7, 6, 7, 5,~
+## $ Functional         &lt;fct&gt; Typ, Typ, Typ, Typ, Typ, Typ, Typ, Typ, T~
+## $ Fireplaces         &lt;int&gt; 2, 0, 0, 2, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1,~
+## $ Garage_Type        &lt;fct&gt; Attchd, Attchd, Attchd, Attchd, Attchd, A~
+## $ Garage_Finish      &lt;fct&gt; Fin, Unf, Unf, Fin, Fin, Fin, Fin, RFn, R~
+## $ Garage_Cars        &lt;dbl&gt; 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,~
+## $ Garage_Area        &lt;dbl&gt; 528, 730, 312, 522, 482, 470, 582, 506, 6~
+## $ Garage_Cond        &lt;fct&gt; Typical, Typical, Typical, Typical, Typic~
+## $ Paved_Drive        &lt;fct&gt; Partial_Pavement, Paved, Paved, Paved, Pa~
+## $ Wood_Deck_SF       &lt;int&gt; 210, 140, 393, 0, 212, 360, 0, 0, 237, 14~
+## $ Open_Porch_SF      &lt;int&gt; 62, 0, 36, 0, 34, 36, 0, 82, 152, 60, 84,~
+## $ Enclosed_Porch     &lt;int&gt; 0, 0, 0, 0, 0, 0, 170, 0, 0, 0, 0, 0, 0, ~
+## $ Three_season_porch &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,~
+## $ Screen_Porch       &lt;int&gt; 0, 120, 0, 0, 0, 0, 0, 144, 0, 0, 0, 0, 0~
+## $ Pool_Area          &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,~
+## $ Pool_QC            &lt;fct&gt; No_Pool, No_Pool, No_Pool, No_Pool, No_Po~
+## $ Fence              &lt;fct&gt; No_Fence, Minimum_Privacy, No_Fence, No_F~
+## $ Misc_Feature       &lt;fct&gt; None, None, Gar2, None, None, None, None,~
+## $ Misc_Val           &lt;int&gt; 0, 0, 12500, 0, 0, 0, 0, 0, 0, 0, 0, 500,~
+## $ Mo_Sold            &lt;int&gt; 5, 6, 6, 4, 3, 6, 4, 1, 3, 6, 4, 3, 5, 2,~
+## $ Year_Sold          &lt;int&gt; 2010, 2010, 2010, 2010, 2010, 2010, 2010,~
+## $ Sale_Type          &lt;fct&gt; WD , WD , WD , WD , WD , WD , WD , WD , W~
+## $ Sale_Condition     &lt;fct&gt; Normal, Normal, Normal, Normal, Normal, N~
+## $ Sale_Price         &lt;int&gt; 215000, 105000, 172000, 244000, 189900, 1~
+## $ Longitude          &lt;dbl&gt; -93.61975, -93.61976, -93.61939, -93.6173~
+## $ Latitude           &lt;dbl&gt; 42.05403, 42.05301, 42.05266, 42.05125, 4~
+```
+
+]
+
+
+???
+
+- 2930 observations, 74 variables
+- remove quality columns: why?
+
+---
+
+## Simple linear regression
+
+&lt;img src="figures/_gen/06/ames-area-1.png" width="623.622047244095" /&gt;
+
+The plot displays the relationship between ground floor living area and sale price of properties in Ames, Iowa. 
+
+.content-box-yellow[
+
+Is ground floor living area alone _sufficient_ to estimate a property's sale price? 
+
+]
+
+---
+
+## Categorical predictor with two levels
+
+.pull-left60[
+
+
+```r
+ames &lt;- ames %&gt;%
+  mutate(has_fireplace = 
+           as.factor(Fireplaces &gt; 0))
+ames %&gt;% 
+  select(Sale_Price, Fireplaces, has_fireplace) %&gt;%
+  print(n = 15)
+```
+
+```
+## # A tibble: 2,930 x 3
+##    Sale_Price Fireplaces has_fireplace
+##         &lt;int&gt;      &lt;int&gt; &lt;fct&gt;        
+##  1     215000          2 TRUE         
+##  2     105000          0 FALSE        
+##  3     172000          0 FALSE        
+##  4     244000          2 TRUE         
+##  5     189900          1 TRUE         
+##  6     195500          1 TRUE         
+##  7     213500          0 FALSE        
+##  8     191500          0 FALSE        
+##  9     236500          1 TRUE         
+## 10     189000          1 TRUE         
+## 11     175900          1 TRUE         
+## 12     185000          0 FALSE        
+## 13     180400          1 TRUE         
+## 14     171500          1 TRUE         
+## 15     212000          0 FALSE        
+## # ... with 2,915 more rows
+```
+
+]
+
+.pull-right40[
+
+- `has_fireplace = FALSE`: property does not have a fireplace 
+- `has_fireplace = TRUE`: property has one or more fireplaces 
+
+]
+
+---
+
+.left-column[
+
+&amp;nbsp;
+
+&amp;nbsp;
+
+.content-box-yellow[
+
+How, if at all, does the relationship between ground floor living area and price of Ames properties vary by whether or not they have a fireplace?
+
+]
+
+]
+
+.right-column[
+
+.panelset[
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/06/ames-area-fireplace-1.png" width="623.622047244095" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+
+```r
+ggplot(data = ames, aes(x = Gr_Liv_Area, y = Sale_Price/1000, color = has_fireplace)) + 
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm") +
+  scale_color_brewer(palette = "Set1", direction = -1) +
+  labs(x = "Ground floor living area [sq ft]", y = "Price [x 1,000 US$]", 
+       title = "Ground floor square feet vs. sale price, by fireplace")
+```
+
+]
+
+]
+
+]
+
+---
+
+&lt;!-- Year_Sold --&gt;
+
+## Multiple linear regressions
+
+
+```r
+linear_reg() %&gt;%
+  set_engine("lm") %&gt;%
+  fit(formula = Sale_Price ~ Gr_Liv_Area + has_fireplace, data = ames) %&gt;%
+  tidy()
+```
+
+```
+## # A tibble: 3 x 5
+##   term              estimate std.error statistic   p.value
+##   &lt;chr&gt;                &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+## 1 (Intercept)        17970.    3166.        5.68 1.52e-  8
+## 2 Gr_Liv_Area           97.0      2.22     43.7  5.60e-322
+## 3 has_fireplaceTRUE  33714.    2243.       15.0  3.03e- 49
+```
+
+--
+
+.content-box-blue[
+
+#### Interpretation
+
+- Slope of `Gr_Liv_Area`: _all else held constant_, for each additional square feet a property's ground floor living area is larger, we would expect the sale price to be higher, on average, by ca. 97 US$. 
+- Slope of `has_fireplaceTRUE`: _all else held constant_, a property with a fire place is, on average, by 33,714 US$ more expensive.
+- Intercept: a property with 0 sq ft ground floor living area and without fire places is expected to cost ca. 17,970 US$.
+
+]
+
+---
+
+## Incorporating model complexity
+
+Recall the coefficient of determination: `\(R^2=\frac{MSS}{TSS}\)`
+
+.content-box-red[
+
+This measure has an issue: `\(R^2\)` increases with each additional variable.
+
+&lt;!-- * `\(MSS\)` always decreases for every additional variable in the model. --&gt;
+&lt;!-- * Consequently,  --&gt;
+
+]
+
+--
+
+### Occam's razor or the principle of parsimony
+
+.content-box-blue[
+
+Given two models of equal quality, the simpler model is preferred over the more complex model. 
+
+]
+
+&amp;rarr; Add a variable to the model _only_ if its addition increases model quality (predictive power) by a _substantial degree_
+
+---
+
+## Adjusted `\(R^2\)`
+
+The **Adjusted** `\(R^2\)` contains a term penalizing the addition of each further variable to the model:
+
+$$
+`\begin{aligned}
+\text{Adjusted } R^2 &amp;= R^2\cdot\frac{n-1}{n-p-1}\\
+&amp;=\frac{MSS}{TSS}\cdot\frac{n-1}{n-p-1}
+\end{aligned}`
+$$
+
+- `\(n\)`: number of observations
+- `\(p\)`: number of predictors / explanatory variables
+
+???
+
+adjustiertes Bestimmtheitsmaß
+
+- zusätzlicher Term wird größer mit zunehmender Anzahl von Prädiktor-Variablen 
+
+---
+
+## Adjusted `\(R^2\)`
+
+.panelset[
+
+.panel[.panel-name[One vs. two predictors]
+
+
+```r
+linear_reg() %&gt;% set_engine("lm") %&gt;%
+  fit(formula = Sale_Price ~ Gr_Liv_Area, data = ames) %&gt;% glance()
+```
+
+```
+## # A tibble: 1 x 12
+##   r.squared adj.r.squared  sigma statistic p.value    df  logLik    AIC    BIC deviance
+##       &lt;dbl&gt;         &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;
+## 1     0.500         0.499 56524.     2923.       0     1 -36218. 72442. 72460.  9.35e12
+## # ... with 2 more variables: df.residual &lt;int&gt;, nobs &lt;int&gt;
+```
+
+
+```r
+linear_reg() %&gt;% set_engine("lm") %&gt;%
+  fit(formula = Sale_Price ~ Gr_Liv_Area + has_fireplace, data = ames) %&gt;% glance()
+```
+
+```
+## # A tibble: 1 x 12
+##   r.squared adj.r.squared  sigma statistic p.value    df  logLik    AIC    BIC deviance
+##       &lt;dbl&gt;         &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;
+## 1     0.535         0.535 54471.     1687.       0     2 -36109. 72226. 72250.  8.68e12
+## # ... with 2 more variables: df.residual &lt;int&gt;, nobs &lt;int&gt;
+```
+
+.content-box-green[
+
+The addition of `has_fireplace` leads to a better model, both in terms of `\(R^2\)` and adjusted `\(R^2\)`.
+
+]
+
+]
+
+.panel[.panel-name[Counterexample plot]
+
+.content-box-yellow[
+
+Does the addition of `Year_Sold` to the model lead to a better fit?
+
+&lt;img src="figures/_gen/06/ames-area-year-sold-1.png" width="623.622047244095" /&gt;
+
+]
+
+]
+
+.panel[.panel-name[Counterexample R² vs. adj. R²]
+
+
+
+
+```r
+linear_reg() %&gt;% set_engine("lm") %&gt;%
+  fit(formula = Sale_Price ~ Gr_Liv_Area, data = ames) %&gt;% glance()
+```
+
+```
+## # A tibble: 1 x 12
+##   r.squared adj.r.squared  sigma statistic p.value    df  logLik    AIC    BIC  deviance
+##       &lt;dbl&gt;         &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt;
+## 1   0.49954       0.49937 56524.    2922.6       0     1 -36218. 72442. 72460. 9.3549e12
+## # ... with 2 more variables: df.residual &lt;int&gt;, nobs &lt;int&gt;
+```
+
+
+```r
+linear_reg() %&gt;% set_engine("lm") %&gt;%
+  fit(formula = Sale_Price ~ Gr_Liv_Area + Year_Sold, data = ames) %&gt;% glance()
+```
+
+```
+## # A tibble: 1 x 12
+##   r.squared adj.r.squared  sigma statistic p.value    df  logLik    AIC    BIC  deviance
+##       &lt;dbl&gt;         &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt;
+## 1   0.49968       0.49934 56526.    1461.6       0     2 -36217. 72443. 72467. 9.3523e12
+## # ... with 2 more variables: df.residual &lt;int&gt;, nobs &lt;int&gt;
+```
+
+
+
+.content-box-red[
+
+The addition of `Year_Sold` leads to a model with slightly better `\(R^2\)` (0.4997 &gt; 0.4995). 
+However, since the adjusted `\(R^2\)` value is lower (0.49934 &lt; 0.49937), the simpler model should be preferred.  
+Adjusted `\(R^2\)` doesn't increase because `Year_Sold` does not provide enough new information, or, in other words, is nearly unrelated.
+
+]
+
+]
+
+]
+
+---
+
+## Main vs. interaction effects
+
+.content-box-blue[
+
+Suppose we want to predict property prices from their living area and presence of a fire place.
+
+Which of the following models is more appropriate?
+
+1. **Main effects:** The rate at which price changes as living area increases is the same for properties with fire places and properties without fire places.
+2. **Interaction effects:** The rate at which price changes as living area increases differs between properties with fire places and properties without fire places.
+
+]
+
+---
+
+class: center, middle
+
+&lt;img src="figures/_gen/06/ames-interaction-1.png" width="992.125984251968" /&gt;
+
+&lt;!--                    attr_importance --&gt;
+&lt;!-- Gr_Liv_Area             64.7253324 --&gt;
+&lt;!-- Neighborhood            47.0390058 --&gt;
+&lt;!-- First_Flr_SF            36.8121825 --&gt;
+&lt;!-- Total_Bsmt_SF           34.7458999 --&gt;
+&lt;!-- MS_SubClass             31.9514404 --&gt;
+&lt;!-- Garage_Cars             28.1824909 --&gt;
+&lt;!-- Second_Flr_SF           27.5964854 --&gt;
+&lt;!-- Year_Built              26.6895673 --&gt;
+&lt;!-- BsmtFin_Type_1          26.5076070 --&gt;
+&lt;!-- Year_Remod_Add          24.8051642 --&gt;
+&lt;!-- Garage_Area             24.3035965 --&gt;
+&lt;!-- Fireplaces              24.0496287 --&gt;
+&lt;!-- Lot_Area                22.1650352 --&gt;
+&lt;!-- Bsmt_Unf_SF             19.6627118 --&gt;
+&lt;!-- Bsmt_Full_Bath          19.6453495 --&gt;
+&lt;!-- Central_Air             18.5536365 --&gt;
+&lt;!-- Exterior_2nd            18.2031016 --&gt;
+&lt;!-- Overall_Cond            17.7018098 --&gt;
+&lt;!-- TotRms_AbvGrd           17.0871701 --&gt;
+&lt;!-- Longitude               16.6975520 --&gt;
+&lt;!-- Latitude                16.2424198 --&gt;
+&lt;!-- Full_Bath               15.9053150 --&gt;
+&lt;!-- Bsmt_Exposure           15.6228796 --&gt;
+&lt;!-- Open_Porch_SF           15.4572853 --&gt;
+&lt;!-- Exterior_1st            15.2761932 --&gt;
+&lt;!-- BsmtFin_SF_1            14.5043185 --&gt;
+&lt;!-- Garage_Type             14.2260289 --&gt;
+&lt;!-- Garage_Cond             14.0896103 --&gt;
+&lt;!-- Wood_Deck_SF            12.9984279 --&gt;
+&lt;!-- Bedroom_AbvGr           12.7531997 --&gt;
+&lt;!-- Half_Bath               12.2157457 --&gt;
+&lt;!-- House_Style             12.1837985 --&gt;
+&lt;!-- Garage_Finish           12.1402089 --&gt;
+&lt;!-- Bldg_Type               11.8455279 --&gt;
+&lt;!-- MS_Zoning               11.3379275 --&gt;
+&lt;!-- Mas_Vnr_Area            11.0250429 --&gt;
+&lt;!-- Lot_Frontage            10.4645931 --&gt;
+&lt;!-- Bsmt_Cond               10.3258146 --&gt;
+&lt;!-- Paved_Drive             10.1635278 --&gt;
+&lt;!-- Kitchen_AbvGr            9.7998820 --&gt;
+&lt;!-- Mas_Vnr_Type             9.6310923 --&gt;
+&lt;!-- Foundation               9.0143406 --&gt;
+&lt;!-- Heating_QC               8.6007908 --&gt;
+&lt;!-- Sale_Condition           8.0757267 --&gt;
+&lt;!-- BsmtFin_Type_2           7.6664175 --&gt;
+&lt;!-- Roof_Style               7.4742070 --&gt;
+&lt;!-- Screen_Porch             6.5981197 --&gt;
+&lt;!-- Land_Contour             6.1430312 --&gt;
+&lt;!-- Functional               5.7319252 --&gt;
+&lt;!-- Sale_Type                5.1025988 --&gt;
+&lt;!-- Enclosed_Porch           4.7535688 --&gt;
+&lt;!-- Alley                    4.5561920 --&gt;
+&lt;!-- Lot_Shape                4.5018087 --&gt;
+&lt;!-- Land_Slope               4.2719235 --&gt;
+&lt;!-- Exter_Cond               3.6997475 --&gt;
+&lt;!-- Mo_Sold                  3.3331162 --&gt;
+&lt;!-- Condition_1              2.9150354 --&gt;
+&lt;!-- Lot_Config               2.2003938 --&gt;
+&lt;!-- Electrical               2.1345511 --&gt;
+&lt;!-- Misc_Val                 1.7447942 --&gt;
+&lt;!-- Fence                    1.7019599 --&gt;
+&lt;!-- Year_Sold                1.6404323 --&gt;
+&lt;!-- Misc_Feature             1.3703530 --&gt;
+&lt;!-- Pool_QC                  1.2045949 --&gt;
+&lt;!-- BsmtFin_SF_2             1.1528664 --&gt;
+&lt;!-- Bsmt_Half_Bath           1.0722768 --&gt;
+&lt;!-- Street                   0.9064887 --&gt;
+&lt;!-- Pool_Area                0.1314096 --&gt;
+&lt;!-- Utilities                0.0000000 --&gt;
+&lt;!-- Roof_Matl               -0.5048499 --&gt;
+&lt;!-- Heating                 -1.0910015 --&gt;
+&lt;!-- Condition_2             -1.4516610 --&gt;
+&lt;!-- Three_season_porch      -2.4842825 --&gt;
+
+
+---
+
+## Model with main effects
+
+
+```r
+m1 &lt;- linear_reg() %&gt;%
+  set_engine("lm") %&gt;%
+  fit(formula = Sale_Price ~ Gr_Liv_Area + has_fireplace, data = ames)
+m1
+```
+
+```
+## parsnip model object
+## 
+## Fit time:  0ms 
+## 
+## Call:
+## stats::lm(formula = Sale_Price ~ Gr_Liv_Area + has_fireplace, 
+##     data = data)
+## 
+## Coefficients:
+##       (Intercept)        Gr_Liv_Area  has_fireplaceTRUE  
+##             17970                 97              33714
+```
+
+`$$\widehat{Sale\_Price} = 17,970 + 97 \cdot Gr\_Liv\_Area + 33,714 \cdot has\_fireplace$$`
+
+---
+
+## Model with interaction effects 
+
+
+```r
+(m2 &lt;- linear_reg() %&gt;% set_engine("lm") %&gt;%
+  fit(formula = Sale_Price ~ Gr_Liv_Area * has_fireplace, data = ames))
+```
+
+```
+## parsnip model object
+## 
+## Fit time:  0ms 
+## 
+## Call:
+## stats::lm(formula = Sale_Price ~ Gr_Liv_Area * has_fireplace, 
+##     data = data)
+## 
+## Coefficients:
+##                   (Intercept)                    Gr_Liv_Area  
+##                      57113.38                          66.19  
+##             has_fireplaceTRUE  Gr_Liv_Area:has_fireplaceTRUE  
+##                     -31309.47                          45.90
+```
+
+.font70[
+
+$$
+`\begin{align}
+\widehat{Sale\_Price} &amp;= 57,113 &amp;+ 66 \cdot Gr\_Liv\_Area &amp;-31,309 \cdot has\_fireplace &amp;+ 46 \cdot Gr\_Liv\_Area \cdot has\_fireplace\\\\
+\widehat{Sale\_Price}(has\_fireplace = 1) &amp;= 57,113 &amp;+ 66 \cdot Gr\_Liv\_Area &amp;-31,309 \cdot 1 &amp;+ 46 \cdot Gr\_Liv\_Area \cdot 1\\
+&amp;= 25,804 &amp;+ 112 \cdot Gr\_Liv\_Area &amp; &amp; \\\\
+\widehat{Sale\_Price}(has\_fireplace = 0) &amp;= 57,113 &amp;+ 66 \cdot Gr\_Liv\_Area &amp;-31,309 \cdot 0 &amp;+ 46 \cdot Gr\_Liv\_Area \cdot 0\\
+&amp;= 57,113 &amp;+ 66 \cdot Gr\_Liv\_Area &amp; &amp; \\
+\end{align}`
+$$
+
+]
+
+---
+
+## Model selection
+
+
+```r
+glance(m1)
+```
+
+```
+## # A tibble: 1 x 12
+##   r.squared adj.r.squared  sigma statistic p.value    df  logLik    AIC    BIC deviance
+##       &lt;dbl&gt;         &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;
+## 1     0.535         0.535 54471.     1687.       0     2 -36109. 72226. 72250.  8.68e12
+## # ... with 2 more variables: df.residual &lt;int&gt;, nobs &lt;int&gt;
+```
+
+
+```r
+glance(m2)
+```
+
+```
+## # A tibble: 1 x 12
+##   r.squared adj.r.squared  sigma statistic p.value    df  logLik    AIC    BIC deviance
+##       &lt;dbl&gt;         &lt;dbl&gt;  &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;
+## 1     0.550         0.550 53594.     1194.       0     3 -36061. 72132. 72162.  8.40e12
+## # ... with 2 more variables: df.residual &lt;int&gt;, nobs &lt;int&gt;
+```
+
+.content-box-green[
+
+Including the interaction effect of `Gr_Liv_Area` and `has_fireplace` yields a better model.  
+
+]
+
+
+```r
+glance(m2)$adj.r.squared &gt; glance(m1)$adj.r.squared
+```
+
+```
+## [1] TRUE
+```
+
+
+---
+
+## Models with categorical predictors
+
+.panelset[
+.panel[.panel-name[Dwelling type]
+
+
+```r
+janitor::tabyl(ames, Bldg_Type)
+```
+
+```
+##  Bldg_Type    n    percent
+##     OneFam 2425 0.82764505
+##   TwoFmCon   62 0.02116041
+##     Duplex  109 0.03720137
+##      Twnhs  101 0.03447099
+##     TwnhsE  233 0.07952218
+```
+
+The explanatory variable `Bldg_Type` is a factor with five levels.
+
+.content-box-blue[
+
+Multinominal predictors, i.e., variables with more than two categories, will be automatically encoded as **dummy variables**.
+
+]
+
+]
+
+.panel[.panel-name[Dummy variables]
+
+&lt;table class="table" style="margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+&lt;tr&gt;
+&lt;th style="empty-cells: hide;border-bottom:hidden;" colspan="1"&gt;&lt;/th&gt;
+&lt;th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="4"&gt;&lt;div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; "&gt;Dummy variables&lt;/div&gt;&lt;/th&gt;
+&lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Bldg_Type &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; TwoFmCon &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Duplex &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; Twnhs &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; TwnhsE &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; OneFam &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; TwoFmCon &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: lime !important;"&gt;1&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Duplex &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: lime !important;"&gt;1&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Twnhs &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: lime !important;"&gt;1&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; TwnhsE &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: #eeeeee !important;"&gt;0&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     padding-right: 4px; padding-left: 4px; background-color: lime !important;"&gt;1&lt;/span&gt; &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+Note that only four dummy variables are created. The building type of properties with _baseline category_ `OneFam` can be inferred from the other dummy variables. 
+
+
+]
+
+.panel[.panel-name[Relationsh. between living area, dwelling type &amp; sale price]
+
+
+```r
+linear_reg() %&gt;%
+  set_engine("lm") %&gt;%
+  fit(Sale_Price ~ Gr_Liv_Area + Bldg_Type, data = ames) %&gt;%
+  tidy()
+```
+
+```
+## # A tibble: 6 x 5
+##   term              estimate std.error statistic  p.value
+##   &lt;chr&gt;                &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+## 1 (Intercept)         11935.   3223.        3.70 2.17e- 4
+## 2 Gr_Liv_Area           114.      2.00     57.0  0.      
+## 3 Bldg_TypeTwoFmCon  -59300.   6951.       -8.53 2.29e-17
+## 4 Bldg_TypeDuplex    -60746.   5299.      -11.5  8.58e-30
+## 5 Bldg_TypeTwnhs     -18059.   5515.       -3.27 1.07e- 3
+## 6 Bldg_TypeTwnhsE     27477.   3723.        7.38 2.06e-13
+```
+
+]
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/06/ames-area-building-type-plot-1.png" width="708.661417322835" /&gt;
+
+
+]
+
+]
+
+---
+
+## Further observation-level diagnostics
+
+.pull-left80[
+
+.content-box-yellow[
+- For which properties does the model have difficulty estimating the sale price?
+- Which properties are **outliers** with respect to the sample distribution? 
+- Which properties have a high **influence** on the model?
+
+]
+
+]
+
+.pull-right20[
+
+&lt;img src="figures/_gen/06/outlier-illustration-1.png" width="283.464566929134" /&gt;
+
+]
+
+
+```r
+(augmented_mod &lt;- augment(model$fit))
+```
+
+```
+## # A tibble: 1,078 x 8
+##    sheight fheight .fitted .resid     .hat .sigma  .cooksd .std.resid
+##      &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;      &lt;dbl&gt;
+##  1    152.    165.    171. -19.2  0.00179    6.16 0.00860      -3.10 
+##  2    161.    161.    169.  -8.10 0.00335    6.19 0.00289      -1.31 
+##  3    161.    165.    171. -10.0  0.00185    6.18 0.00242      -1.62 
+##  4    159.    167.    172. -12.4  0.00139    6.18 0.00281      -2.01 
+##  5    163.    155.    166.  -2.63 0.00621    6.19 0.000568     -0.426
+##  6    163.    160.    168.  -5.19 0.00361    6.19 0.00128      -0.840
+##  7    163.    166.    171.  -8.66 0.00159    6.19 0.00156      -1.40 
+##  8    163.    164.    171.  -8.04 0.00201    6.19 0.00170      -1.30 
+##  9    164.    168.    172.  -8.22 0.00125    6.19 0.00111      -1.33 
+## 10    163.    170.    174. -11.0  0.000991   6.18 0.00157      -1.78 
+## # ... with 1,068 more rows
+```
+
+---
+
+## Properties with high residuals
+
+Which son heights are difficult to predict?
+
+.panelset[
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/06/residual-plot-1.png" width="720" /&gt;
+
+.font80[
+.content-box-blue[
+
+Residuals are measured in the same units as the response. 
+To obtain **standard residuals**, we divide the residuals by their standard deviation.
+
+]
+]
+
+]
+.panel[.panel-name[Code]
+
+
+```r
+ggplot(augmented_mod, aes(x = fheight, y = sheight)) + 
+  geom_point(aes(color = .resid)) +
+  geom_smooth(method = "lm") +
+  scale_color_gradient2(mid = "gray80") +
+  labs(x = "Father's height [cm]", y = "Son's height [cm]", color = "Residuals")
+```
+
+]
+]
+
+
+
+???
+
+- Punkte sind sehr weit vom Regressionsgerade entfernt
+- in einem interaktiven Tool könnte der Experte entscheiden, was mit diesen Beobachtungen gemacht wird. 
+
+---
+
+## High leverage properties
+
+[Leverage](https://en.wikipedia.org/wiki/Leverage_(statistics) (or **hat values**) measures the outlierness of an observation based on the difference to the general distribution of the sample. 
+
+.panelset[
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/06/leverage-1.png" width="720" /&gt;
+
+.font80[
+
+.content-box-blue[
+
+The range of hat values is between 0 (very close to other observations) and 1 (far away from other observations).
+
+]
+
+]
+
+
+]
+.panel[.panel-name[Code]
+
+
+```r
+ggplot(augmented_mod, aes(fheight, sheight)) +
+* geom_point(aes(color = .hat), alpha = 0.6) +
+  geom_smooth(method = "lm") +
+  scale_color_viridis_c(option = "inferno") +
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+]
+]
+
+
+???
+
+- observations with high leverage could influence the regression mode.
+- a popular measure to calculate the effect of an observation on a regression model is cook's distance 
+
+---
+
+## "Influential" properties
+
+**Cook's distance** measures the effect of removing a given observation on the change of the model.
+
+&lt;!-- `$$D_i=\frac{e_i^2}{RSS/N}\left( \frac{h_i}{(1-h_i)^2} \right)$$` --&gt;
+
+.panelset[
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/06/cook-1.png" width="720" /&gt;
+
+.font80[
+
+.content-box-blue[
+
+As a rule of thumb, Cook's distance values greater than 1 indicate observations with a high influence on the model.
+
+In general, for observations with high Cook distance, one must weigh whether (a) they represent natural variation and should therefore be retained, or (b) they are outliers that are better removed before fitting
+
+]
+
+]
+
+
+
+]
+.panel[.panel-name[Code]
+
+
+```r
+ggplot(augmented_mod, aes(fheight, sheight)) +
+* geom_point(aes(color = .cooksd), alpha = 0.6) +
+  geom_smooth(method = "lm") +
+  scale_color_viridis_c(option = "inferno") +
+  labs(x = "Father's height [cm]", y = "Son's height [cm]")
+```
+
+]
+]
+
+???
+
+- question: what to do with these points?
+- do they reflect natural variation across observations? (keep) 
+- or could it be that they are noise or measuring errors (delete)
+
+---
+
+## Assumptions of linear regression
+
+The list of assumptions for linear regression models includes:
+
+- **linearity**, i.e., "straight-line-relationship" between predictors and response
+- **homoscedasticity**, i.e., constant variance of residual terms
+- no perfect **collinearity** (perfect linear relationship between two or more predictors)
+- predictors are uncorrelated with variables that are not included in the model
+- **outliers**, **high-leverage** points
+
+
+???
+
+**TODO** modify from here
+
+- external variables: variebles that haven't been included in the regression model which influence the outcome variable -&gt; if external variables do correlate with the predictors, then the conclusions we draw from the model become unreliable (because other variables exist that can predict the outcome just as well)
+- 
+
+---
+
+## Considerations for high-dimensional datasets 1/2
+
+Two popular methods for datasets with a high number of predictor variables are **Ridge** regression and **LASSO** regression. They introduce a **shrinkage** term in their optimization functions.
+
+Standard least squares estimate minimizes:
+
+`$$RSS= \sum_{i=1}^n \left( y_i - \left(\hat{\beta}_0 +   \hat{\beta}_1 x_{i}\right)\right)^2$$`
+
+--
+
+**Ridge regression**: penalizes high `\(\hat{\beta}\)` values
+
+`$$RSS= \sum_{i=1}^n \left( y_i - \left(\hat{\beta}_0 +   \hat{\beta}_1 x_{i}\right)\right)^2+\lambda\sum_{j=1}^p \beta_j^2=RSS+\lambda\sum_{j=1}^p \beta_j^2$$`
+
+&amp;rarr; implemented in `glmnet::glmnet()`: set `alpha=0`
+
+Advantage: **more stable than least squares**  when the number of predictors `\(p\)` is almost as large as the number of observations `\(n\)`
+
+???
+
+- penalty term that shrinks coefficients to 0
+- the higher lambda -&gt; the more impact the penalty term has
+- lambda is tuning parameter -&gt; must be optimized eg. by cross-validation
+- lse: problem: if low bias but high variance -&gt; small change in the training data can cause a large change in the least squares coefficient
+- don't say: bias-variance-trade-off: the higher lambda, the higher bias and lower variance
+- ridge regression does have one obvious disadvantag: shrinks all coefficients towards 0, but it will not set any of them exactly to zero
+- causes problems for interpretation
+
+---
+
+## Considerations for high-dimensional datasets 2/2
+
+**Ridge regression**: penalizes high `\(\hat{\beta}\)` values
+
+`$$RSS= \sum_{i=1}^n \left( y_i - \left(\hat{\beta}_0 +   \hat{\beta}_1 x_{i}\right)\right)^2+\lambda\sum_{j=1}^p \beta_j^2=RSS+\lambda\sum_{j=1}^p \beta_j^2$$`
+
+**LASSO regression**: penalizes high `\(\hat{\beta}\)` values
+
+`$$RSS= \sum_{i=1}^n \left( y_i - \left(\hat{\beta}_0 +   \hat{\beta}_1 x_{i}\right)\right)^2+\lambda\sum_{j=1}^p |\beta_j|=RSS+\lambda\sum_{j=1}^p |\beta_j|$$`
+
+&amp;rarr; implemented in `glmnet::glmnet()`: set `alpha=1`
+
+Advantage: forces some coefficients to be **exactly equal to 0** which means that the model is easier to interpret
+
+???
+
+- l1 penalty instead of l2 penalty
+
+---
+
+## Other regression models in `R`
+
+- **Generalized linear models** (`stats::glm()`): allow for discrete responses, e.g. logistic regression
+- **Generalized additive models** (`mgcv::gam()`): allow for non-linear transformation of predictors
+- **Robust linear models** (`MASS::rlm()`): distance function reduces sensitivity to outliers
+
+???
+
+- Generalised linear models, e.g. stats::glm(). Linear models assume that the response is continuous and the error has a normal distribution. Generalised linear models extend linear models to include non-continuous responses (e.g. binary target variables). They work by defining a distance metric based on the statistical idea of likelihood.
+- Generalised additive models, e.g. mgcv::gam(), erweitern generaliserte lineare Modelle, sodass auch nicht-lineare Beziehungen abgebildet werden können. 
+- RLM have a different notation for the distance between objects:
+  - points, that are far away from the mean receive a lower weight -&gt; downweighted
+  - more robust when  outliers are present
+  - (at the cost of being not quite as good when there are no outliers)
+
+---
+
+exclude: true
+
+## Summary
+
+- regression is a method to **predict values of one variable (response) from one or more other variables (predictors)**
+- in **simple linear regression**, a statistical model is fitted to the data in form of a **straight line**
+- this **line minimizes the sum of squared differences between the predicted values of the response and the predictor** 
+- the **coefficient of determination `\(R^2\)`** indicates **how much variance is explained by the model**
+- `\(\beta_1\)` value indicates the slope of the regression line and thus, the **direction** and **strength** of the relationship between a predicotr and the response
+- pros:
+  - often (suprisingly) competetitive in comparison with more sophisticated methods
+  - model itself is **interpretable** &amp;rarr; useful for inference
+- cons:
+  - strong assumptions, e.g., absence of collinearity
+  - in terms of accuracy inferior to state-of-the-art algorithms 
+
+???
+
+- addition R^2: it is the proportion of variance in the response that is shared by the predictor variables
+- If beta_1 is significant, then the predictor significantly predicts the outcome variable.
+
+---
+
+
+## Session info
+
+
+```
+##  setting  value                       
+##  version  R version 4.0.4 (2021-02-15)
+##  os       Windows 10 x64              
+##  system   x86_64, mingw32             
+##  ui       RTerm                       
+##  language (EN)                        
+##  collate  English_United States.1252  
+##  ctype    English_United States.1252  
+##  tz       Europe/Berlin               
+##  date     2021-03-29
+```
+
+&lt;div style="font-size:80%;"&gt;
+
+.pull-left[
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; package &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; version &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; date &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; source &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; airports &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.1.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-06-29 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; AmesHousing &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.0.4 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-06-23 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; broom &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.7.5 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-02-19 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; cherryblossom &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.1.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-06-25 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; dials &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.0.9 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-09-16 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; dplyr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.0.5 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-03-05 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.4) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; forcats &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.5.1 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-01-27 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; ggplot2 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 3.3.3 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-12-30 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; infer &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.5.4 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-01-13 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; kableExtra &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.3.4 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-02-20 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; modeldata &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.1.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-10-22 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; openintro &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2.0.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-07-03 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; parsnip &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.1.5 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-01-19 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; patchwork &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.1.1 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-12-17 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+]
+
+.pull-right[
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; package &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; version &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; date &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; source &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; purrr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.3.4 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-04-17 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.2) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; readr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.4.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-10-05 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; recipes &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.1.15 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-11-11 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; rsample &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.0.9 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-02-17 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.4) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; scales &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.1.1 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-05-11 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.2) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; stringr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.4.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2019-02-10 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.2) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; tibble &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 3.1.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-02-25 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; tidymodels &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.1.2 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-11-22 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; tidyr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.1.3 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-03-03 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.4) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; tidyverse &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.3.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2019-11-21 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.2) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; tune &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.1.2 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-11-17 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; usdata &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.1.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-06-30 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; workflows &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.2.2 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-03-10 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.4) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; yardstick &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.0.7 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-07-13 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+]
+
+&lt;/div&gt;
+
+---
+
+
+class: last-slide, center, bottom
+
+# Thank you! Questions?
+
+&amp;nbsp;
+
+.courtesy[&amp;#x1F4F7; Photo courtesy of Stefan Berger]
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": true,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

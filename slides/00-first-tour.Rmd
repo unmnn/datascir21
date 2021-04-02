@@ -1,0 +1,450 @@
+---
+title: "First Tour"
+subtitle: "Data Science with R &#183; Summer 2021"
+author: "Uli Niemann"
+session: "00"
+institute: "Knowledge Management & Discovery Lab"
+# date: "2016/12/12 (updated: `r Sys.Date()`)"
+output:
+  xaringan::moon_reader:
+    css: ["default", "assets/css/my-theme.css", "assets/css/my-fonts.css"]
+    seal: false # custom title slide
+    lib_dir: libs
+    nature:
+      # highlightStyle: solarized-light
+      highlightStyle: github
+      highlightLines: true
+      # highlightLanguage: ["r", "css", "yaml"]
+      countIncrementalSlides: true
+      ratio: "16:9"
+params:
+  url: "https://brain.cs.uni-magdeburg.de/kmd/DataSciR/"
+---
+
+```{r setup, include=FALSE}
+source("global-slide-settings.R", local = knitr::knit_global(), encoding = "UTF-8")
+
+# directory of generated figures
+knitr::opts_chunk$set(fig.path = "figures/_gen/00/")
+# directory of included figures
+fig_path <- "figures/"
+
+```
+
+```{r, child="title-slide.Rmd"}
+```
+
+---
+
+## What is `R`?
+
+.pull-left70[
+- **Statistical programming language** with focus on **reproducible data analysis**
+- **Free, open source** and **available for every major OS**
+- Since January 2017 more than **10,000 packages** available
+  - Comprehensive **statistics** and **machine learning** packages
+  - Elaborate packages to create aesthetically appealing **graphics** and **charts**
+
+## What is RStudio?
+
+- Open source **Integrated Development Environment (IDE)** for `R`
+- First release in 2011
+- Two major versions: **RStudio Desktop** and **RStudio Server**
+- Download & Installation of `R` and RStudio: <https://www.rstudio.com/products/rstudio/download/>
+
+]
+
+.pull-right30[
+
+```{r, echo=FALSE, out.width="100%"}
+knitr::include_graphics(file.path(fig_path, "00-R_logo.svg.png"))
+```
+
+```{r, echo=FALSE, out.width="100%"}
+knitr::include_graphics(file.path(fig_path, "00-rstudio_logo.png"))
+```
+
+]
+
+---
+
+## RStudio IDE
+
+```{r, echo=FALSE, out.width="90%"}
+knitr::include_graphics(file.path(fig_path, "00-rstudio_ide_components.png"))
+```
+
+---
+
+## R packages &#x1F4E6;
+
+- Base `R` contains functions that are needed by the majority of users.
+- Additional functions can be used on demand by loading **packages**.
+
+.content-box-blue[
+
+A **package** is a **collection of functions, datasets and documentation** that extends
+the capabilities of base R.
+
+]
+
+---
+
+## Packages on CRAN<sup>1</sup>
+
+```{r, echo=FALSE, out.width = "80%"}
+knitr::include_graphics(file.path(fig_path, "00-r_cran_2.png"))
+```
+
+.font80[
+
+<sup>1</sup> [CRAN](https://cran.r-project.org/), the _The Comprehensive R Archive Network_, consists of multiple worldwide mirror servers, used to distribute `R` and `R` packages.  
+Figure source: <https://gist.github.com/daroczig/3cf06d6db4be2bbe3368>
+]
+
+---
+
+class: center, middle, inverse
+
+## Tour: R and RStudio
+
+---
+
+## Calling functions
+
+.left-column[
+
+Basic function call scheme:
+
+```{r eval=FALSE}
+some_function(arg_1 = val_1,
+              arg_2 = val_2,
+              ...)
+```
+
+```{r, echo=FALSE, out.width="95%"}
+knitr::include_graphics(file.path(fig_path, "00-mean_help.png"))
+```
+
+]
+
+.right-column[
+
+Example: the `mean()` function:
+
+- `x` is the only mandatory argument
+- arguments `trim` and `na.rm` have default values
+
+```{r mean-1, error = TRUE, echo = TRUE, eval = FALSE}
+x <- 1:10
+mean(x) # trim = 0 and na.rm = FALSE
+```
+{{content}}
+
+]
+
+--
+
+```{r ref.label='mean-1', error = TRUE, echo = FALSE, eval = TRUE}
+```
+{{content}}
+
+--
+
+```{r mean-2, error = TRUE, echo = TRUE, eval = FALSE}
+x <- c(1:10, NA)
+mean(x)
+```
+{{content}}
+
+<!-- # Mean of a vector with >=1 NA's yields NA -->
+
+--
+
+```{r ref.label='mean-2', error = TRUE, echo = FALSE, eval = TRUE}
+```
+{{content}}
+
+--
+
+```{r mean-3, error = TRUE, echo = TRUE, eval = TRUE}
+mean(x, na.rm = TRUE) # NA's will be ignored
+```
+{{content}}
+
+--
+
+```{r mean-4, error = TRUE, echo = TRUE, eval = FALSE}
+mean(x, TRUE) # match unnamed args to their position
+```
+{{content}}
+
+--
+
+```{r ref.label='mean-4', error = TRUE, echo = FALSE, eval = TRUE}
+```
+{{content}}
+
+---
+
+## Downloading, installing and loading packages
+
+```{r, eval=F}
+# A package has to be installed only once:
+install.packages("dplyr") # -> install package "dplyr" from CRAN
+# Load the package once per session:
+library(dplyr)
+```
+
+--
+
+Alternatively, you can install and load packages in RStudio using the Packages
+tab.
+
+```{r, echo=FALSE, out.width="75%", fig.align='center'}
+knitr::include_graphics(file.path(fig_path, "00-rstudio_package_installer.png"))
+```
+
+.content-box-gray[
+
+To install a package that is hosted on GitHub use `remotes::install_github("<REPOSITORY>")`.
+
+]
+
+
+---
+
+## Data Frames
+
+- `data.frame` is `R`'s data structure for a **table**.
+- A data frame is a rectangular collection of data, arranged by **variables** (**columns**) and **observations** (**rows**).
+
+Columns of data frames are accessed with `$`:
+
+```{r dollar, eval=FALSE}
+dataframe$var_name
+```
+
+---
+
+## The Tidyverse
+
+.pull-left[
+
+```{r, echo=FALSE, out.width="100%"}
+knitr::include_graphics(file.path(fig_path, "00-tidyverse.png"))
+```
+
+]
+
+.pull-right[
+
+Quote from the [Tidyverse website](https://www.tidyverse.org/):
+
+.content-box-gray[
+
+.font110[
+
+"**R packages for data science.** The tidyverse is an **opinionated collection of R packages designed for data science**. All packages share an underlying **design philosophy, grammar, and data structures**."
+
+]
+
+
+]
+
+&rarr; collection of open-source `R` packages mainly for data wrangling and visualization  
+&rarr; shared conventions and common APIs across all Tidyverse packages
+
+]
+
+---
+
+## R Markdown
+
+.pull-left60[
+
+**R Markdown** is a file format to combine **code**, the associated **results** 
+and **narrative text** in a simple text file, to create **reproducible reports** 
+which can be **flexibly distributed in multiple ways**.  
+
+An R Markdown document is saved as `.Rmd` file. It contains both the (`R`) code 
+and a prose description of a data analysis task. The R Markdown document can be 
+rendered as HTML, PDF, Word and various other output formats.
+
+**Pros** of R Markdown documents:
+
+- **reproducibility** (reduce **copy&paste**)
+- **simple Markdown syntax** for text
+- a **single source document** that can be rendered for different 
+target audiences and purposes
+- **simple, future-proof file format** that can be managed by a version control 
+system like Git or SVN
+
+]
+
+.pull-right40[
+
+```{r rmarkdown-logo, echo=FALSE, out.width="40%", fig.align='center'}
+knitr::include_graphics(file.path(fig_path, "00-rmarkdown-logo.png"))
+```
+
+<https://rmarkdown.rstudio.com/>
+
+```{r 1-file-3-outputs, echo=FALSE, out.width="100%", fig.align='center'}
+knitr::include_graphics(file.path(fig_path, "00-three_outputs.png"))
+```
+
+]
+
+???
+
+- file extension
+- Jupyter notebooks in Python (combine text, code and results)
+- flexibility in terms of type of output document
+- flexibility in terms of target audience -> parametrized reports
+  - you: lab notebook containing code, conclusions and reasoning behind your analysis
+  - decision makers: hide code, focus on charts and conclusions
+  - colleagues: focus both on conclusions and code to ensure reproducibility and to facilitate collaborating
+- rmd is plain text file so it can be managed by a version control system
+- simple syntax
+
+---
+
+name: output
+class: center, middle
+
+```{r rmarkdown-sketch, echo=FALSE, out.width="100%", fig.align='center'}
+knitr::include_graphics(file.path(fig_path, "00-rmarkdown_sketch.png"))
+```
+
+???
+
+- process: Rmd -> md -> rendered document
+- rmd: md + r-code
+- knitr: run code and combine these code results (charts, models, console output) with md markup of rmd file
+- pandoc (general file converter) converts this augmented md file to the desired output HTML, pdf, word etc.
+- simplified process - based on the output, more packages are needed
+- e.g. blogdown: Hugo required (open-source static site generator)
+
+---
+
+class: middle
+
+```{r rmd-first-example-1, echo=FALSE, out.width="80%", fig.align='center'}
+knitr::include_graphics(file.path(fig_path, "00-rmd_first_example_1.png"))
+```
+
+???
+
+- YAML header: meta data
+- code chunks: can be R but there are other languages supported, such as python, javascript, sql, ruby
+- Markdown text
+- inline code: allows for dynamic content (e.g.how many records) using simple commands
+  - no need for manual copy and paste of the code output into the narrative text. 
+
+---
+
+class: center, middle, inverse
+
+## Tour: R Markdown
+
+---
+
+## Structure of an `.Rmd` file
+
+.pull-left[
+
+```{r rmd-first-example, echo=FALSE, out.width="100%", fig.align='center'}
+knitr::include_graphics(file.path(fig_path, "00-rmd_first_example.png"))
+```
+
+]
+
+.pull-right[
+
+- **YAML header** (metadata)
+  - enclosed by lines with three dashes
+  - collection of key-value pairs separated by colons
+- narrative text as **Markdown markup**
+- **`R` code**
+  - as code chunks surrounded by <code>&#96;</code><code>&#96;</code><code>&#96;{r}</code> and <code>&#96;</code><code>&#96;</code><code>&#96;</code>
+  - as inline code surrounded by <code>&#96;r </code> and <code>&#96;</code>
+]
+
+---
+
+## R Markdown help
+
+.pull-left[
+
+**Markdown Quick Reference**:  
+Help &rarr; Markdown Quick Reference
+
+```{r rstudio-markdown-quick-ref, echo=FALSE, out.width="100%"}
+knitr::include_graphics(file.path(fig_path, "00-rstudio-markdown-quick-ref-1.png"))
+```
+
+]
+
+.pull-right[
+
+**R Markdown Cheat Sheet**:  
+Help &rarr; Cheatsheets &rarr; R Markdown Cheat Sheet
+
+```{r rstudio-markdown-cheat-sheet, echo=FALSE, out.width="100%"}
+knitr::include_graphics(file.path(fig_path, "00-rmarkdown-cheatsheet-cutout.png"))
+```
+
+]
+
+---
+
+## Environments
+
+.content-box-yellow[
+
+&#x26A0;&#xFE0F; Each R Markdown document has its own environment.
+
+&rarr; Consequence: Objects from the global environment are unavailable in the .Rmd document when knitting.
+
+]
+
+--
+
+#### Example: 
+
+1\. Run the following code in the console:
+
+```{r env-1, eval = FALSE}
+x <- 5
+x * 3
+```
+
+&#x1F60A; _All good!_
+
+--
+
+2\. Add the following code within a code chunk to your .Rmd file and knit the document:
+
+```{r env-2, eval = FALSE}
+x * 3
+```
+
+&#x1F62D; _Knitting fails!_
+
+---
+
+## How will we use R Markdown?
+
+- Every exercise comes with an R Markdown document which contains some code scaffolding.
+- You submit your project report as an R Markdown document.
+- The course slides are made with R Markdown.
+
+???
+
+- amount of scaffolding will decrease over the course of the semester
+
+---
+
+```{r, child="last-slide.Rmd"}
+```

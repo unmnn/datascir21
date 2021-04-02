@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Tips for effective visualizations</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Uli Niemann" />
+    <script src="libs/header-attrs/header-attrs.js"></script>
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/panelset/panelset.css" rel="stylesheet" />
+    <script src="libs/panelset/panelset.js"></script>
+    <link href="libs/tile-view/tile-view.css" rel="stylesheet" />
+    <script src="libs/tile-view/tile-view.js"></script>
+    <link rel="stylesheet" href="assets/css/my-theme.css" type="text/css" />
+    <link rel="stylesheet" href="assets/css/my-fonts.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+
+
+
+
+
+class: title-slide, center, bottom
+
+# 02 - Tips for effective visualizations
+
+## Data Science with R &amp;#183; Summer 2021
+
+### Uli Niemann &amp;#183; Knowledge Management &amp; Discovery Lab
+
+#### [https://brain.cs.uni-magdeburg.de/kmd/DataSciR/](https://brain.cs.uni-magdeburg.de/kmd/DataSciR/)
+
+.courtesy[&amp;#x1F4F7; Photo courtesy of Ulrich Arendt]
+
+---
+
+## Keep it simple
+
+.pull-left[
+
+&lt;img src="figures//02-pie.png" width="100%" /&gt;
+
+]
+
+.pull-right[
+
+&lt;img src="figures/_gen/02/bar-alternative-1.png" width="425.196850393701" /&gt;
+
+]
+
+.footnote[.font80[Slides adapted from: [Introduction to Data Science Course 2020 @ Univ. Edinburgh](https://ids-s1-20.github.io/slides/week-05/w5-d02-effective-dataviz/w5-d02-effective-dataviz.html#1)]]
+
+???
+
+left: created with MS Excel
+
+---
+
+## Use color to draw attention
+
+.pull-left[
+
+&lt;img src="figures/_gen/02/bar-color-1-1.png" width="425.196850393701" /&gt;
+
+]
+
+.pull-right[
+
+&lt;img src="figures/_gen/02/bar-color-2-1.png" width="425.196850393701" /&gt;
+
+]
+
+---
+
+## Tell a story
+
+
+
+
+
+.panelset[
+
+.panel[.panel-name[Does the year matter?]
+
+&lt;img src="figures/_gen/02/bundesliga-ftg-color-1.png" width="708.661417322835" /&gt;
+
+]
+.panel[.panel-name[Plot annotation]
+
+&lt;img src="figures/_gen/02/bundesliga-ftg-label-1.png" width="708.661417322835" /&gt;
+
+]
+
+]
+
+
+
+
+
+
+
+---
+
+## Principles for effective visualizations
+
+.font130[
+
+&amp;#x1F522; Order matters
+
+&amp;#x1F504; Put long categories on the y-axis
+
+&amp;#x1F4D0; Keep scales consistent
+
+&amp;#x1F3A8; Select meaningful colors
+
+&amp;#x1F3F7;&amp;#xFE0F; Use meaningful and nonredundant labels
+
+]
+
+---
+
+## Alphabetical order is rarely ideal
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/poll-bar-2-1.png" width="576" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+
+```r
+library(gapminder)
+l97 &lt;- filter(gapminder, year == 2007, lifeExp &gt; 70)
+
+ggplot(l97, aes(x = continent)) +
+  geom_bar() 
+```
+
+]
+
+]
+
+---
+
+## Order by frequency
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/poll-bar-3-1.png" width="576" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+`fct_infreq()`: Reorder factor levels by frequency.
+
+
+```r
+ggplot(l97, aes(x = fct_infreq(continent))) +
+  geom_bar() 
+```
+
+]
+
+]
+
+---
+
+## Alphabetical order is rarely ideal
+
+
+
+.panelset[
+.panel[.panel-name[5 Plot]
+
+
+
+
+
+&lt;img src="figures/_gen/02/poll-bar-1-1.png" width="576" /&gt;
+
+&lt;!-- subtitle = '"If there were a federal election next Sunday, which party would you vote for?"', --&gt;
+
+.content-box-yellow[
+
+Since we're using `geom_col()` we can't use `fct_infreq()` because every category (i.e. party) appears exactly in one and only one observation. 
+
+
+]
+
+]
+
+.panel[.panel-name[3 Code to prep data]
+
+.pull-left[
+
+
+```r
+umfrage &lt;- read_rds(
+  here::here("data", "umfrage.rds")
+)
+umfrage
+```
+
+```
+## # A tibble: 56 x 3
+##    party   pollster         popularity
+##    &lt;chr&gt;   &lt;chr&gt;                 &lt;dbl&gt;
+##  1 CDU/CSU Allensbach             28.5
+##  2 CDU/CSU Kantar(Emnid)          25  
+##  3 CDU/CSU Forsa                  26  
+##  4 CDU/CSU Forsch’gr.Wahlen       28  
+##  5 CDU/CSU GMS                    37  
+##  6 CDU/CSU Infratestdimap         29  
+##  7 CDU/CSU INSA                   28  
+##  8 CDU/CSU Yougov                 33  
+##  9 SPD     Allensbach             18  
+## 10 SPD     Kantar(Emnid)          17  
+## # ... with 46 more rows
+```
+
+```r
+(date_range &lt;- attr(umfrage, "date_range"))
+```
+
+```
+## [1] "2021-02-15" "2021-03-27"
+```
+
+]
+
+.pull-right[
+
+
+```r
+(date_range_chr &lt;- paste0(
+  date_range, collapse = " - "))
+```
+
+```
+## [1] "2021-02-15 - 2021-03-27"
+```
+
+```r
+umfrage_avg &lt;- umfrage %&gt;%
+  group_by(party) %&gt;%
+  summarize(popularity = mean(popularity)) %&gt;%
+  ungroup()
+umfrage_avg
+```
+
+```
+## # A tibble: 7 x 2
+##   party     popularity
+##   &lt;chr&gt;          &lt;dbl&gt;
+## 1 AfD            10.5 
+## 2 CDU/CSU        29.3 
+## 3 DIE LINKE       7.69
+## 4 FDP             9   
+## 5 GRÜNE          20.7 
+## 6 Other           6.06
+## 7 SPD            16.8
+```
+
+]
+
+]
+
+.panel[.panel-name[4 Code for plot]
+
+
+
+```r
+ggplot(umfrage_avg, aes(x = party, y = popularity)) +
+  geom_col() +
+  labs(
+    x = NULL,
+    y = "Popularity (%)",
+    title = "German parliament election poll",
+    subtitle = glue::glue("Percentages represent average values across 8 polling institutes\nTime period: {date_range_chr}"),
+    caption = "Data source: https://www.wahlrecht.de/umfragen/"
+  ) +
+  theme(plot.subtitle = element_text(size = rel(0.8), face = "italic"))
+```
+
+]
+
+.panel[.panel-name[1 Poll aggregator website]
+
+&lt;https://www.wahlrecht.de/umfragen/&gt;
+
+&lt;img src="figures//02-wahlrecht-umfrage.png" width="80%" /&gt;
+
+]
+.panel[.panel-name[2 Code to scrape data]
+
+
+```r
+library(rvest)
+umfrage &lt;- read_html("https://www.wahlrecht.de/umfragen/") %&gt;%
+  html_node(".wilko") %&gt;%
+  html_table()
+umfrage[names(umfrage) == ""] &lt;- NULL
+umfrage[length(umfrage)] &lt;- NULL # "Letzte Bundestagswahl"
+
+date_range &lt;- as.character(range(lubridate::dmy(as.character(umfrage[1, ][-1]))))
+
+umfrage &lt;- umfrage %&gt;%
+  filter(Institut %in% c("CDU/CSU", "SPD", "GRÜNE", "FDP", "DIE LINKE", "AfD", "Sonstige")) %&gt;%
+  rename(party = Institut) %&gt;%
+  pivot_longer(cols = -party, names_to = "pollster", values_to = "popularity") %&gt;%
+  mutate(popularity = str_replace(popularity, ",", "\\.")) %&gt;%
+  mutate(popularity = str_remove(popularity, " %")) %&gt;%
+  mutate(popularity = as.double(popularity)) %&gt;%
+  mutate(party = ifelse(party == "Sonstige", "Other", party))
+
+attr(umfrage, "date_range") &lt;- date_range
+
+write_rds(umfrage, here::here("data", "umfrage.rds"))
+```
+
+]
+
+]
+
+---
+
+## Order by a second variable
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/poll-bar-4-1.png" width="576" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+`fct_reorder()`: Reorder factor levels by another numeric variable. Use `-` to sort in descending order.
+
+
+```r
+ggplot(
+  umfrage_avg, 
+  aes(
+*   x = fct_reorder(party, -popularity),
+    y = popularity
+  )
+) +
+  geom_col() +
+  labs(
+    x = NULL,
+    y = "Popularity (%)",
+    title = "German parliament election poll",
+    subtitle = glue::glue("Percentages represent average values across 8 polling institutes\nTime period: {date_range_chr}"),
+    caption = "Data source: https://www.wahlrecht.de/umfragen/"
+  ) +
+  theme(plot.subtitle = element_text(size = rel(0.8), face = "italic"))
+```
+
+]
+
+]
+
+---
+
+## Custom order
+
+.content-box-gray[
+
+Sometimes you see in election polls that the parties are shown in the order of their vote shares in the previous election. For example, in the 2017 elections the SPD received the second most votes, whereas GRÜNE were only sixth.
+
+]
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/poll-bar-5-1.png" width="576" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+`fct_relevel()`: Manually reorder factor levels.
+
+
+```r
+umfrage_avg &lt;- umfrage_avg %&gt;%
+  mutate(
+*   party = fct_relevel(party,
+*     "CDU/CSU", "SPD", "AfD", "FDP", "DIE LINKE", "GRÜNE", "Other"
+*   )
+  )
+ggplot(umfrage_avg, aes(x = party, y = popularity)) +
+  geom_col() +
+  labs(
+    x = NULL,
+    y = "Popularity (%)",
+    title = "German parliament election poll",
+    subtitle = glue::glue("Percentages represent average values across 8 polling institutes\nTime period: {date_range_chr}"),
+    caption = "Data source: https://www.wahlrecht.de/umfragen/"
+  ) +
+  theme(plot.subtitle = element_text(size = rel(0.8), face = "italic"))
+```
+
+]
+
+]
+
+---
+
+## Factor levels often need to be cleaned up
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/poll-bar-6-1.png" width="360" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+
+```r
+ggplot(attrition, aes(x = BusinessTravel)) +
+  geom_bar()
+```
+
+]
+
+]
+
+???
+
+- remove "Travel" from factor labels
+
+---
+
+## Clean up labels
+
+.panelset[
+
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/poll-bar-7-1.png" width="360" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+`fct_relevel()`: Manually reorder factor levels.
+
+
+```r
+attrition &lt;- attrition %&gt;%
+  mutate(
+    BusinessTravel = fct_recode(
+      BusinessTravel,
+      "Frequently" = "Travel_Frequently",
+      "Rarely" = "Travel_Rarely",
+      "Non" = "Non-Travel"
+    )
+  )
+
+
+ggplot(attrition, aes(x = BusinessTravel)) +
+  geom_bar()
+```
+
+]
+
+]
+
+---
+
+## Put long and overlapping categories on the y-axis
+
+.pull-left[
+
+Categories on x-axis:
+
+
+```r
+ggplot(
+  umfrage_avg, 
+  aes(x = party, y = popularity)
+) +
+  geom_col()
+```
+
+&lt;img src="figures/_gen/02/long-cats-y-1-1.png" width="360" /&gt;
+
+]
+
+.pull-right[
+
+Categories on y-axis:
+
+
+```r
+ggplot(
+  umfrage_avg, 
+  aes(x = popularity, y = party)
+) +
+  geom_col()
+```
+
+&lt;img src="figures/_gen/02/long-cats-y-2-1.png" width="360" /&gt;
+
+]
+
+---
+
+## Reverse the order of levels
+
+.panelset[
+.panel[.panel-name[`fct_rev()`]
+
+`fct_rev()`: Reverse the order of factor levels
+
+
+```r
+ggplot(umfrage_avg, aes(x = popularity, 
+*                       y = fct_rev(party))) +
+  geom_col()
+```
+
+&lt;img src="figures/_gen/02/long-cats-y-3-1.png" width="360" /&gt;
+
+]
+.panel[.panel-name[Via scale setting]
+
+`rev()`: Reverse the order of values (any vector type)
+
+
+```r
+ggplot(umfrage_avg, aes(x = popularity, y = party)) + 
+  geom_col() +
+* scale_y_discrete(limits = rev)
+```
+
+&lt;img src="figures/_gen/02/long-cats-y-4-1.png" width="360" /&gt;
+
+]
+
+]
+
+---
+
+## Before plotting, think about the purpose
+
+.content-box-blue[
+
+**Example:** What is the number and share of women for each education field in the attrition data? 
+
+]
+
+.panelset[
+.panel[.panel-name[Stacked bars]
+
+
+```r
+ggplot(attrition, aes(y = EducationField, fill = Gender)) +
+  geom_bar() +
+  theme(legend.position = "bottom")
+```
+
+&lt;img src="figures/_gen/02/purpose-1-1.png" width="566.929133858268" /&gt;
+
+]
+
+.panel[.panel-name[Filled bars]
+
+
+```r
+ggplot(attrition, aes(y = EducationField, fill = Gender)) +
+  geom_bar(position = "fill") +
+  theme(legend.position = "bottom")
+```
+
+&lt;img src="figures/_gen/02/purpose-2-1.png" width="566.929133858268" /&gt;
+
+]
+
+.panel[.panel-name[Dodged bars]
+
+
+```r
+ggplot(attrition, aes(y = EducationField, fill = Gender)) +
+  geom_bar(position = "dodge") +
+  theme(legend.position = "bottom")
+```
+
+&lt;img src="figures/_gen/02/purpose-3-1.png" width="566.929133858268" /&gt;
+
+]
+
+.panel[.panel-name[Facetted bars]
+
+
+```r
+ggplot(attrition, aes(y = Gender, fill = Gender)) +
+  geom_bar() +
+  facet_wrap(~ EducationField) +
+  theme(legend.position = "bottom")
+```
+
+&lt;img src="figures/_gen/02/purpose-4-1.png" width="566.929133858268" /&gt;
+
+]
+]
+
+???
+
+- because the totals differs between the fields, it is -e.g.- hard to see the percentage of women WITHIN the human resources category.
+- default: position_stack
+- try: position_fill
+
+---
+
+## Avoid redundancy
+
+.panelset[
+.panel[.panel-name[High redundancy]
+
+.font130[&amp;#128683; DON'T]
+
+
+```r
+ggplot(attrition, 
+  aes(y = Gender, fill = Gender, color = Gender, linetype = Gender, alpha = Gender)) +
+  geom_bar(size = 2) +
+  facet_wrap(~ EducationField) +
+  scale_color_brewer(palette = "Set1")
+```
+
+```
+## Warning: Using alpha for a discrete variable is not advised.
+```
+
+&lt;img src="figures/_gen/02/purpose-5-1.png" width="680.314960629921" /&gt;
+
+]
+
+.panel[.panel-name[Low redundancy]
+
+&lt;!-- &amp;#9989; DO --&gt;
+
+
+```r
+ggplot(attrition, aes(y = Gender)) +
+  geom_bar() +
+  facet_wrap(~ EducationField)
+```
+
+&lt;img src="figures/_gen/02/purpose-6-1.png" width="566.929133858268" /&gt;
+
+]
+
+]
+
+---
+
+## Keep scales consistent
+
+.font130[&amp;#128683; DON'T]
+
+
+```r
+ggplot(attrition, aes(y = Gender)) +
+  geom_bar() +
+* facet_wrap(~ EducationField, scales = "free_x")
+```
+
+&lt;img src="figures/_gen/02/consistent-scales-1-1.png" width="566.929133858268" /&gt;
+
+---
+
+## Use meaningful and nonredundant labels
+
+.panelset[
+.panel[.panel-name[Without context]
+
+
+```r
+ggplot(umfrage_avg, aes(x = party, y = popularity)) +
+  geom_col()
+```
+
+&lt;img src="figures/_gen/02/meaningful-labels-1-1.png" width="708.661417322835" /&gt;
+
+]
+
+.panel[.panel-name[With context]
+
+
+```r
+ggplot(umfrage_avg, aes(x = party, y = popularity)) +
+  geom_col()+
+  labs(x = NULL, y = "Popularity (%)", title = "German parliament election poll",
+    subtitle = glue::glue("Percentages represent average values across 8 polling institutes\nTime period: {date_range_chr}"),
+    caption = "Data source: https://www.wahlrecht.de/umfragen/")
+```
+
+&lt;img src="figures/_gen/02/meaningful-labels-2-1.png" width="708.661417322835" /&gt;
+
+]
+
+]
+
+---
+
+## Select meaningful colors
+
+.panelset[
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/redundancy-1-1.png" width="708.661417322835" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+
+```r
+umfrage_avg &lt;- umfrage_avg %&gt;% mutate(party = fct_reorder(party, -popularity))
+ggplot(umfrage_avg, aes(x = party, y = popularity, fill = party)) +
+  geom_col() +
+  labs(x = NULL, y = "Popularity (%)", title = "German parliament election poll",
+    subtitle = glue::glue("Percentages represent average values across 8 polling institutes\nTime period: {date_range_chr}"),
+    caption = "Data source: https://www.wahlrecht.de/umfragen/") +
+  theme(plot.subtitle = element_text(size = rel(0.8), face = "italic")) +
+* scale_fill_manual(values = c("CDU/CSU" = "#000000", "GRÜNE" = "#1FAF12", "SPD" = "#E30013",
+*"AfD" = "#009DE0", "DIE LINKE" = "#DF007D", "FDP" = "#FFED00", "Other" = "gray80"))
+```
+
+]
+
+]
+
+---
+
+## Be selective with redundancy
+
+.panelset[
+.panel[.panel-name[Plot]
+
+&lt;img src="figures/_gen/02/redundancy-2-1.png" width="595.275590551181" /&gt;
+
+]
+
+.panel[.panel-name[Code]
+
+
+```r
+umfrage_avg &lt;- umfrage_avg %&gt;% mutate(party = fct_reorder(party, -popularity))
+ggplot(umfrage_avg, aes(x = party, y = popularity, fill = party)) +
+  geom_col() +
+  labs(x = NULL, y = "Popularity (%)", title = "German parliament election poll",
+    subtitle = glue::glue("Percentages represent average values across 8 polling institutes\nTime period: {date_range_chr}"),
+    caption = "Data source: https://www.wahlrecht.de/umfragen/") +
+  theme(plot.subtitle = element_text(size = rel(0.8), face = "italic")) +
+  scale_fill_manual(values = c("CDU/CSU" = "#000000", "GRÜNE" = "#1FAF12", "SPD" = "#E30013",
+"AfD" = "#009DE0", "DIE LINKE" = "#DF007D", "FDP" = "#FFED00", "Other" = "gray80")) +
+  guides(fill = FALSE)
+```
+
+]
+
+]
+
+---
+
+## Select meaningful colors
+
+.panelset[
+.panel[.panel-name[No color]
+
+&lt;img src="figures/_gen/02/unnamed-chunk-13-1.png" width="566.929133858268" /&gt;
+
+]
+
+.panel[.panel-name[ColorBrewer website]
+
+&lt;iframe src="https://colorbrewer2.org" width="100%" height="500px"&gt;&lt;/iframe&gt;
+
+]
+
+.panel[.panel-name[Manual colors]
+
+
+```r
+ggplot(attrition, aes(y = fct_rev(Gender), fill = Gender)) +
+  geom_bar() +
+  facet_wrap(~ EducationField) +
+* scale_fill_manual(values = c("Female" = "#7fc97f", "Male" = "#fdc086")) +
+  guides(fill = FALSE)
+```
+
+&lt;img src="figures/_gen/02/purpose-7-1.png" width="566.929133858268" /&gt;
+
+]
+
+.panel[.panel-name[RColorBrewer package]
+
+
+```r
+RColorBrewer::display.brewer.all()
+```
+
+&lt;img src="figures//02-colorbrewer.png" width="45%" /&gt;
+
+]
+
+.panel[.panel-name[Palette]
+
+
+```r
+ggplot(attrition, aes(y = fct_rev(Gender), fill = Gender)) +
+  geom_bar() +
+  facet_wrap(~ EducationField) +
+* scale_fill_brewer(palette = "Pastel2") +
+  guides(fill = FALSE)
+```
+
+&lt;img src="figures/_gen/02/purpose-8-1.png" width="566.929133858268" /&gt;
+
+]
+
+]
+
+---
+
+
+## Session info
+
+
+```
+##  setting  value                       
+##  version  R version 4.0.4 (2021-02-15)
+##  os       Windows 10 x64              
+##  system   x86_64, mingw32             
+##  ui       RTerm                       
+##  language (EN)                        
+##  collate  English_United States.1252  
+##  ctype    English_United States.1252  
+##  tz       Europe/Berlin               
+##  date     2021-03-29
+```
+
+&lt;div style="font-size:80%;"&gt;
+
+.pull-left[
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; package &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; version &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; date &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; source &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; dplyr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.0.5 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-03-05 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.4) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; forcats &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.5.1 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-01-27 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; gapminder &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.3.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2017-10-31 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; ggplot2 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 3.3.3 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-12-30 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; purrr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.3.4 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-04-17 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.2) &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+]
+
+.pull-right[
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; package &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; version &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; date &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; source &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; readr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.4.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-10-05 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; stringr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.4.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2019-02-10 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.2) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; tibble &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 3.1.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-02-25 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; tidyr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.1.3 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-03-03 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.4) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; tidyverse &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1.3.0 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2019-11-21 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.2) &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+]
+
+&lt;/div&gt;
+
+---
+
+
+class: last-slide, center, bottom
+
+# Thank you! Questions?
+
+&amp;nbsp;
+
+.courtesy[&amp;#x1F4F7; Photo courtesy of Stefan Berger]
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": true,
+"ratio": "16:9"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

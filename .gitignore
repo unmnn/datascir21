@@ -37,3 +37,25 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+
+admin/
+datascir21.md
+website/
+datascir21-figures.pptx
+datascir21-schedule*
+quiz/
+*code-along.Rmd
+*code-along.html
+*sol.Rmd
+*sol.html
+slides/figures/ss20/
+slides/01-R-Fundamentals*
+RKI_COVID19_RAW.csv
+
+
+ex/ex-4/refs.bib
+ex/ex-4/ieee.csl
+ex/ex-4/ex-4_files/
+ex/ex-4/ex-4.pdf
+ex/ex-4/ex-4.html
