@@ -67,9 +67,11 @@ knitr::include_graphics(file.path(fig_path, '00-collage.png'))
 
 ---
 
-class: middle
+class: bottom
+background-image: url("figures/00-stay-at-home.jpg")
+background-size: fill
 
-```{r stay-at-home-picture, echo = FALSE, out.width="70%", fig.align='center'}
+```{r stay-at-home-picture, echo = FALSE, out.width="70%", fig.align='center', eval = FALSE}
 knitr::include_graphics(file.path(fig_path, '00-stay-at-home.jpg'))
 ```
 
@@ -178,6 +180,15 @@ knitr::include_graphics(file.path(fig_path, '00-students.jpg'))
 
 ]
 
+???
+
+Part 1: until first week of June
+
+- asynchronous content: slides, videos, exercises, and quizzes
+- synchronous elements: weekly meetings (code-along, questions)
+
+Part 2: throughout the entire semester
+
 ---
 
 ## Website & syllabus
@@ -188,6 +199,17 @@ knitr::include_url("https://brain.cs.uni-magdeburg.de/kmd/DataSciR#syllabus", he
 
 ???
 
+first part: in each week we cover a different topic 
+- videos
+- slides
+- exercises
+- quizzes
+- additional reading
+
+- crash course is not meant to be exhaustive
+- "common ground" like packages that all of you are most likely going to use in your projects 
+- however, you are encouraged to use also other packages
+
 After successful completion of this course, you will be able to proficiently perform the following tasks in `R`:
 
 - **import and preprocess raw data**
@@ -195,11 +217,6 @@ After successful completion of this course, you will be able to proficiently per
 - perform **exploratory data analysis** with **summary statistics** and **visualization**
 - understand, build and evaluate predictive **classification and prediction models**, including **regression** models, **tree-based** models, **ensembles** and **boosted** models
 - communicate and disseminate results and findings through **reproducible documents**, presentations, websites and **interactive web applications**
-
-- crash course is not meant to be exhaustive
-- "common ground" like packages that all of you are most likely going to use in your projects 
-- however, you are encouraged to use also other packages
-
 
 ---
 
@@ -253,6 +270,12 @@ knitr::include_graphics(file.path(fig_path, '00-pile.jpg'))
 - Lowest score is dropped, i.e., only your 6 best results count
 - Total score of correctly answered questions gives you up to 30 pt for your final grade
 - Questions must be answered in a fixed order, which means you **cannot** return to previous questions 
+
+---
+
+class: middle
+background-image: url("figures/00-example-questions.png")
+background-size: contain
 
 ---
 
@@ -352,7 +375,18 @@ Your overall course grade will be determined by the following components:
 
 ---
 
-## Zoom expectations
+## Zoom meetings
+
+We will have weekly Zoom meetings. They are completely optional.
+
+The Zoom meetings are mainly for:
+
+* code-alongs
+* Q&A
+
+--
+
+Expectations for Zoom meetings:
 
 In larger sessions you should
 

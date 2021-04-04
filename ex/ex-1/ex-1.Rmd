@@ -17,7 +17,6 @@ Your task is to **fill in the blanks!**
 
 ## Packages and data
 
-
 ```{r load-tidyverse-and-data, message = FALSE}
 library(tidyverse)
 of <- read_csv("oktoberfest-en.csv")

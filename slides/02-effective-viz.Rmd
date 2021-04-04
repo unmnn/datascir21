@@ -530,7 +530,7 @@ ggplot(attrition, aes(x = BusinessTravel)) +
 
 .panel[.panel-name[Code]
 
-`fct_relevel()`: Manually reorder factor levels.
+`fct_recode()`: Manually relabel factor levels.
 
 ```{r ref.label="poll-bar-7", eval=FALSE}
 ```

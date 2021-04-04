@@ -89,11 +89,26 @@ in increments of 5 years.
 - `pop = 82400996` inhabitants
 - `gdpPercap = 32170` USD
 
+```{r germany-2007, echo=FALSE}
+gapminder %>%
+  filter(country == "Germany", year == 2007)
+```
+
 ]
+
+
 
 ---
 
 ## What's in the Gapminder data?
+
+.content-box-yellow[
+
+- How many rows and columns does this dataset contain?  
+- What does each row represent?  
+- What does each column represent?
+
+]
 
 Take a `glimpse()` at the data:
 
@@ -106,14 +121,6 @@ glimpse(gapminder)
 
 ## Consulting the dataset documentation
 
-.content-box-yellow[
-
-- How many rows and columns does this dataset contain?  
-- What does each row represent?  
-- What does each column represent?
-
-]
-
 ```{r gapminder-help, eval = FALSE}
 ?gapminder
 # alternative: place cursor within `gapminder` and press F1
@@ -124,12 +131,6 @@ knitr::include_graphics(file.path(fig_path, "02-gapminder-help.png"))
 ```
 
 ---
-
-.content-box-yellow[
-
-How many rows and columns does this dataset contain?  
-
-]
 
 ```{r gapminder-dim}
 nrow(gapminder) # number of rows
@@ -197,6 +198,10 @@ as.data.frame(ans)[23:44,]
 
 ]
 
+???
+
+- discover things we don't easily see when we just look at the raw data
+
 ---
 
 ## Summarizing Anscombe's quartet
@@ -218,9 +223,9 @@ ans %>%
 
 ## Visualizing  Anscombe's quartet
 
-```{r anscombe-viz, echo=FALSE, fig.width=25/2.54}
+```{r anscombe-viz, echo=FALSE, fig.width=35/2.54, fig.height = 18/2.54}
 ggplot(ans, aes(x = x, y = y)) +
-  geom_point() +
+  geom_point(size = 1.5) +
   facet_wrap(~ group, nrow = 1)
 ```
 
@@ -239,38 +244,49 @@ ggplot(ans, aes(x = x, y = y)) +
 ```{r gapminder-life-gdp-outlier, echo=FALSE, fig.width=25/2.54}
 p <- ggplot(
   data = filter(gapminder, year == 1952), 
-  mapping = aes(x = lifeExp, y = gdpPercap)
+  mapping = aes(x = gdpPercap, y = lifeExp)
 ) +
   geom_point() +
   geom_point(data = filter(gapminder, year == 1952, country == "Kuwait"),
              size = 5, pch = 1, color = "orange", stroke = 3, alpha = 0.8) +
   labs(
-    x = "Life expectancy (years)",
-    y = "GDP per capita (USD)",
+    x = "GDP per capita (USD)",
+    y = "Life expectancy (years)",
     title = "Relationship between life expectancy and GDP in 1952"
   )
 ```
 
 ```{r gapminder-life-gdp-outlier-1, echo=FALSE, fig.width=25/2.54}
-p
+p 
 ```
+
+???
+
+- general: the higher the GDP, the higher life expectancy
+- however, other factors might explain the variation across the countries: lifestyle, e.g. tobacco and alcohol consumption, lack of exercising, healthcare system
+- difficult to see the trend because of the outlier
 
 ---
 
 class: middle, center
 
 ```{r gapminder-life-gdp-outlier-2, echo=FALSE, fig.width=30/2.54, fig.height=20/2.54}
-library(patchwork)
+library(patchwork) 
 # rsvg::rsvg_png("figures/02-flag-kuwait.svg", file = "02-flag-kuwait.png")
 flag <- png::readPNG("figures/02-flag-kuwait.png", native = TRUE)
 p + 
-  inset_element(flag, 0.5, 0.6, 0.9, 0.9) + theme_void()
+  inset_element(flag, 0.5, 0.3, 0.9, 0.7) + theme_void()
   # ggrepel::geom_text_repel(
   #   data = filter(gapminder, year == 1952, country == "Kuwait"),
   #   aes(label = country),
   #   family = "Fira Sans", size = 24/.pt
   # )
 ```
+
+???
+
+- In the mid-twentieth century, Kuwait experienced a period of prosperity called "Golden era" of Kuwait in which the country became the largest oil exporter in the Persian Gulf region by by 1952.
+- visualization helps us to understand our data better and to raise new questions
 
 ---
 
@@ -652,15 +668,12 @@ By default, `ggplot2` always creates a legend for mapping variables.
 
 ## Global vs. local aesthetics
 
-We can specify the aesthetic mapping either **globally** within the `ggplot()` function or **individually** for a specific layer within a `geom_*()` function.
-
+We can specify the aesthetic mapping either **globally** within the `ggplot()` function or **individually** for a specific layer within a `geom_*()` function.  
 If set globally, the aesthetic mapping takes effect on **all** geom layers.
 
-.panelset[
-
-.panel[.panel-name[Global]
-
 .pull-left[
+
+**Global:**
 
 ```{r aes-global, fig.width=7, eval=FALSE}
 # continent is mapped to color for 
@@ -670,8 +683,8 @@ ggplot(
   mapping = aes(
     x = gdpPercap, 
     y = lifeExp, 
-    color = continent)
-  )  +
+    color = continent #<<
+  ))  +
   geom_point() +
   geom_smooth(method = "lm") +
   scale_x_log10()
@@ -686,10 +699,16 @@ ggplot(
 
 ]
 
-]
-.panel[.panel-name[!!!Local]
+---
+
+## Global vs. local aesthetics
+
+We can specify the aesthetic mapping either **globally** within the `ggplot()` function or **individually** for a specific layer within a `geom_*()` function.  
+If set globally, the aesthetic mapping takes effect on **all** geom layers.
 
 .pull-left[
+
+**Local:**
 
 ```{r aes-local, fig.width=7, eval=FALSE}
 # continent is mapped to color only 
@@ -698,10 +717,19 @@ ggplot(
   data = gapminder,
   mapping = aes(x = gdpPercap, y = lifeExp)
 ) +
-  geom_point(mapping = aes(color = continent)) +
+  geom_point(mapping = aes(color = continent)) + #<<
   geom_smooth(method = "lm") +
   scale_x_log10()
 ```
+
+]
+
+.pull-right[
+
+```{r ref.label="aes-local", fig.width=7, echo=FALSE}
+```
+
+]
 
 .content-box-blue[
 
@@ -715,21 +743,9 @@ of a point and a line.
 
 ]
 
-.pull-right[
-
-```{r ref.label="aes-local", fig.width=7, echo=FALSE}
-```
-
-]
-
-]
-
-]
 <!-- .panel[.panel-name[]] -->
 <!-- .panel[.panel-name[]] -->
 <!-- .panel[.panel-name[]] -->
-
-]
 
 ---
 
@@ -1620,7 +1636,7 @@ Add a y-axis line with arrow.
 
 ```{r themes-11, fig.width=25/2.54, fig.height=14/2.54}
 p + theme_minimal(base_size = 24) +
-  theme(axis.line.y = element_line(arrow = arrow(type = "closed")))
+  theme(axis.line.y = element_line(arrow = arrow(type = "closed"))) #<<
 ```
 
 ]
@@ -1676,6 +1692,20 @@ knitr::include_graphics(file.path(fig_path, "02-theme.png"))
 
 ---
 
+## Save plots &#x1F4BE;
+
+```{r ggsave, eval = FALSE}
+ggsave(
+  filename = "filename.png", # or: pdf, svg, jpeg, eps, tiff, ...
+  plot = p, # if not specified saves plot that was created last
+  width = 8, height = 6,
+  units = "cm", 
+  dpi = 300 # specifies resolution (dots per inch) 
+)
+```
+
+---
+
 class: center, middle, inverse
 
 # Visualizing numerical data
@@ -1698,7 +1728,7 @@ knitr::include_graphics(file.path(fig_path, "02-types-of-variables.png"))
 
 .footnote[
 
-In this course, I use the terms _variable_, _attribute_, and _feature_ synonymously.
+In this course, we use the terms _variable_, _attribute_, and _feature_ synonymously.
 
 ]
 
@@ -2445,20 +2475,6 @@ than built-in maps. A shapefile is **geospatial vector data format** for geograp
 information system (GIS) software.
 
 Shapefiles actually consist of several sub-files, see e.g. [Wikipedia](https://en.wikipedia.org/wiki/Shapefile).
-
----
-
-## Save plots &#x1F4BE;
-
-```{r ggsave, eval = FALSE}
-ggsave(
-  filename = "filename.png", # or: pdf, svg, jpeg, eps, tiff, ...
-  plot = p, # if not specified saves plot that was created last
-  width = 8, height = 6,
-  units = "cm", 
-  dpi = 300 # specifies resolution (dots per inch) 
-)
-```
 
 ---
 
