@@ -1,5 +1,5 @@
 ---
-title: "First Tour"
+title: "First tour of R & RStudio"
 subtitle: "Data Science with R &#183; Summer 2021"
 author: "Uli Niemann"
 session: "00"
@@ -84,7 +84,7 @@ knitr::include_graphics(file.path(fig_path, "00-rstudio_ide_components.png"))
 .content-box-blue[
 
 A **package** is a **collection of functions, datasets and documentation** that extends
-the capabilities of base R.
+the capabilities of Base `R`.
 
 ]
 

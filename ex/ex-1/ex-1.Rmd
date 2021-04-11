@@ -1,7 +1,7 @@
 ---
 title: "Mini Oktoberfest Analysis"
 date: "`r Sys.Date()`"
-author: "___"
+author: "_____"
 output: 
   html_document:
     fig_width: 6
@@ -84,6 +84,7 @@ What does this plot show us?
 - There are three points that are far away from the overall trend. 
 
 Let us plot the change of Hendl price and consumption over time separately and highlight the "outlier years". 
+
 
 ```{r hendl-consumption-over-time, fig.width = 8}
 ofp <- of %>%

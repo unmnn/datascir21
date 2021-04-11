@@ -71,7 +71,7 @@ ggplot(att_per, aes(x = perc, y = JobRole)) +
 
 ???
 
-left: created with MS Excel
+left: created with MS Excel;
 
 ---
 
@@ -864,3 +864,7 @@ ggplot(attrition, aes(y = fct_rev(Gender), fill = Gender)) +
 
 ```{r last-slide, child="last-slide.Rmd"}
 ```
+
+???
+
+next year: misleading visualizations, see https://web.stanford.edu/group/poldracklab/statsthinking21/data-visualization.html#plotting-in-r-using-ggplot

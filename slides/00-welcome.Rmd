@@ -63,7 +63,7 @@ knitr::include_graphics(file.path(fig_path, '00-collage.png'))
 
 ???
 
-- personal introduction
+- course organization + first tour of R and RStudio
 
 ---
 
@@ -258,18 +258,30 @@ knitr::include_graphics(file.path(fig_path, '00-pile.jpg'))
 
 ]
 
+???
+
+- Website: hub for all materials and news about the course
+- GitHub: course materials are hosted there (slides, exercises + data)
+- Moodle: video recordings, quizzes, forum
+- Zoom: during the first part of the course - weekly meetings with code-alongs + Q&A
+
 ---
 
 ## Quizzes
 
 - Handled on E-Learning (Moodle)
 - 7 quizzes in total with 5 questions each
-- Each quiz open on Mondays 00:00 and is due on the following Sunday at 23:59 Germany time
+- Each quiz open on Mondays 00:00 and is due on the following Sunday at 23:59 German time
   - The first quiz is available between 12.04 00:00 and 18.04 23:59
 - Work on them individually
 - Lowest score is dropped, i.e., only your 6 best results count
 - Total score of correctly answered questions gives you up to 30 pt for your final grade
-- Questions must be answered in a fixed order, which means you **cannot** return to previous questions 
+- Questions must be answered in a fixed order, which means you **cannot** return to previous questions
+
+???
+
+- individual part:
+- purpose: motivate you to engage with the crash course part of the course
 
 ---
 
@@ -292,6 +304,11 @@ In a nutshell: **_Find an interesting dataset and do something with it!_**
 - emphasize on **compelling visualizations** and a **convincing, coherent and clear narrative**
 - all analyses must be done in R; you are encouraged to use tidyverse packages but you don't have to  
 
+???
+
+- team work part
+- Moodle forum to form teams
+
 ---
 
 ## The project data
@@ -307,6 +324,9 @@ knitr::include_url("https://brain.cs.uni-magdeburg.de/kmd/DataSciR/project.html"
 ```
 
 ???
+
+- team size: 3-4 ideal
+- show example projects
 
 - description
 - project team
@@ -339,7 +359,7 @@ knitr::include_url("https://brain.cs.uni-magdeburg.de/kmd/DataSciR/project.html"
 
 Date          | Description
 :------------ | :---------------------------------------------------------
-16.05.        | Team formation & project proposal submission; registration
+20.05. ~~16.05.~~        | Team formation & project proposal submission; registration
 24.-28.05.    | Project proposal feedback
 06.07.        | Final project submission due
 09.07.        | Final presentations, exact time and location to be announced

@@ -1,9 +1,9 @@
 # remotes::install_github("jhelvy/xaringanBuilder")
 library(purrr)
 
-dir("slides", pattern = "html$") %>%
-  setdiff(c("01-R-Fundamentals.html", "04-rmd-intro.html")) %>%
-# c("02-ggplot2-intro.html", "02-effective-viz.html") %>%
+# dir("slides", pattern = "00.*html$") %>%
+  # setdiff(c("01-R-Fundamentals.html", "04-rmd-intro.html")) %>%
+c("00-welcome.html") %>%
   # Render html files from .Rmd
   # walk(~ paste0("slides/", xfun::sans_ext(.x), ".rmd"), "xaringan::moon_reader") %>%
   # Convert html files to pdf
