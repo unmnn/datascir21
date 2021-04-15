@@ -69,3 +69,5 @@ ex/ex-7/
 ex/ex-8/
 drake/
 .drake/
+
+!*ex-2-code-along.Rmd

@@ -1,0 +1,83 @@
+---
+title: "Visualizing Data"
+date: "`r Sys.Date()`"
+author: "___"
+output: 
+  html_document:
+    fig_width: 6
+    fig_height: 5
+    toc: true
+    toc_float: true
+---
+
+## Packages and data
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(gapminder)
+
+# Countries to be highlighted
+ctr <- c("Afghanistan", "Argentina", "Bangladesh", 
+         "Botswana", "Brazil", "Canada", "China",  
+         "Cameroon", "Germany", "Greece", "India", 
+         "Iraq", "Italy", "Japan", "Malaysia", 
+         "New Zealand",  "Norway", "Rwanda", "Singapore", 
+         "South Africa", "Sudan", "United States", "Venezuela")
+```
+
+## Data subset
+
+```{r data-subset}
+# filter observations where the year is 2007 
+g07 <- filter(gapminder, year == 2007)
+g07
+```
+
+## Custom regression fit
+
+```{r custom-regression-model}
+# create linear regression model with a simple linear term and a log term
+library(parsnip)
+m <- linear_reg() %>%
+  set_engine("lm") %>%
+  set_mode("regression") %>%
+  fit(lifeExp ~ gdpPercap + log(gdpPercap), data = g07)
+m
+glance(m)
+# extract R²
+mr2 <- round(glance(m)$r.squared)
+
+# apply model to 100 equi-distant values along the range of gdpPercap
+test_data <- tibble(gdpPercap = seq(min(g07$gdpPercap), max(g07$gdpPercap), 
+                              length.out = 100))
+prd <- m %>%
+  predict(new_data = test_data) %>%
+  rename(lifeExp = .pred) %>%
+  bind_cols(test_data)
+prd
+```
+
+## The plot
+
+Recreate the following plot:
+
+```{r template, echo = FALSE, out.width="100%"}
+knitr::include_graphics("02-country-dev.png")
+```
+
+Tips:
+
+- Use the ColorBrewer scale "Set2" for color.
+- The x-axis limits are `c(0, 52000)` without expansion factor.
+- The x-axis labels are created by `scales::dollar`
+- Use `ggrepel::geom_text_repel()` to automatically arrange text labels so that they don't overlap.
+- Use `theme_minimal()` as basis theme.
+
+```{r plot, fig.width=9, fig.height=5}
+
+
+
+
+
+
+```
