@@ -271,12 +271,15 @@ class: center, middle, inverse
 .pull-left60[
 
 .content-box-gray[
+
+.font90[
 The company behind a travel price aggregator website wants to analyze its booking data to optimize the website's usability and thus improve their customers' travel experience.
 
 The data is organized into two files: 
 
 - `bookings.csv`: hotel bookings
 - `properties.csv`: hotel facilities
+]
 
 ]
 
@@ -287,6 +290,8 @@ The data is organized into two files:
 &lt;img src="figures//03-expedia.png" width="100%" /&gt;
 
 ]
+
+.font90[
 
 
 ```r
@@ -313,6 +318,7 @@ bookings &lt;- read_csv("../data/bookings.csv")
 ## )
 ```
 
+]
 
 .font80[
 
@@ -679,7 +685,7 @@ Create a new tibble `x` that
 1. _...using base `R` functions only._
 2. _...using the `dplyr` functions `select()` and `filter()`._
 
-<div class="countdown" id="timer_6059aa3b" style="right:0;bottom:0;" data-warnwhen="0">
+<div class="countdown" id="timer_60755422" style="right:0;bottom:0;" data-warnwhen="0">
 <code class="countdown-time"><span class="countdown-digits minutes">03</span><span class="countdown-digits colon">:</span><span class="countdown-digits seconds">00</span></code>
 </div>
 
@@ -935,7 +941,7 @@ class: middle, exercise-blue
 
 ## Your turn 2
 
-<div class="countdown" id="timer_6059a7e6" style="right:0;bottom:0;" data-warnwhen="0">
+<div class="countdown" id="timer_607551d4" style="right:0;bottom:0;" data-warnwhen="0">
 <code class="countdown-time"><span class="countdown-digits minutes">05</span><span class="countdown-digits colon">:</span><span class="countdown-digits seconds">00</span></code>
 </div>
 
@@ -1115,7 +1121,7 @@ class: middle, exercise-blue
 
 ## Your turn 3
 
-<div class="countdown" id="timer_6059a940" style="right:0;bottom:0;" data-warnwhen="0">
+<div class="countdown" id="timer_607550ac" style="right:0;bottom:0;" data-warnwhen="0">
 <code class="countdown-time"><span class="countdown-digits minutes">03</span><span class="countdown-digits colon">:</span><span class="countdown-digits seconds">00</span></code>
 </div>
 
@@ -1308,7 +1314,7 @@ bookings %&gt;%
 
 ]
 
-.panel[.panel-name[Multiple n-valued stats]
+.panel[.panel-name[Multiple one-valued stats]
 
 &gt; What is the total number of bookings, the number of bookings without review score, and the average review score over all bookings?
 
@@ -1362,7 +1368,7 @@ class: middle, exercise-blue
 
 ## Your turn 4
 
-<div class="countdown" id="timer_6059a986" style="right:0;bottom:0;" data-warnwhen="0">
+<div class="countdown" id="timer_6075533f" style="right:0;bottom:0;" data-warnwhen="0">
 <code class="countdown-time"><span class="countdown-digits minutes">08</span><span class="countdown-digits colon">:</span><span class="countdown-digits seconds">00</span></code>
 </div>
 
@@ -1432,7 +1438,7 @@ class: middle, exercise-blue
 
 ## Your turn 5
 
-<div class="countdown" id="timer_6059a97a" style="right:0;bottom:0;" data-warnwhen="0">
+<div class="countdown" id="timer_60755417" style="right:0;bottom:0;" data-warnwhen="0">
 <code class="countdown-time"><span class="countdown-digits minutes">10</span><span class="countdown-digits colon">:</span><span class="countdown-digits seconds">00</span></code>
 </div>
 
@@ -1954,7 +1960,7 @@ class: middle, exercise-blue
 
 ## Your turn 6
 
-<div class="countdown" id="timer_6059a8d3" style="right:0;bottom:0;" data-warnwhen="0">
+<div class="countdown" id="timer_607553a3" style="right:0;bottom:0;" data-warnwhen="0">
 <code class="countdown-time"><span class="countdown-digits minutes">03</span><span class="countdown-digits colon">:</span><span class="countdown-digits seconds">00</span></code>
 </div>
 
@@ -2156,10 +2162,10 @@ it is easier to enter data into a spreadsheet in untidy way
 `tidyr`'s two main functions are `pivot_longer()` and `pivot_wider()`. 
 
 - `pivot_longer()` takes multiple columns and collapses them into **key-value pairs**.
-- `pivot_wider()` takes two (or more) columns (a key-value pair) and spreads them into **multiple columns**. 
+- `pivot_wider()` takes two or more columns (i.e., a key-value pair) and spreads them into **multiple columns**. 
 
 
-&lt;img src="figures//03-tidyr_pivot.png" width="50%" style="display: block; margin: auto;" /&gt;
+&lt;img src="figures//03-tidyr_pivot.png" width="45%" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -2440,7 +2446,7 @@ class: middle, exercise-blue
 
 ## Your turn 7
 
-<div class="countdown" id="timer_6059a979" style="right:0;bottom:0;" data-warnwhen="0">
+<div class="countdown" id="timer_6075515f" style="right:0;bottom:0;" data-warnwhen="0">
 <code class="countdown-time"><span class="countdown-digits minutes">10</span><span class="countdown-digits colon">:</span><span class="countdown-digits seconds">00</span></code>
 </div>
 
@@ -2452,7 +2458,7 @@ class: middle, exercise-blue
 
 ---
 
-## separate()
+## `separate()`
 
 
 ```r
@@ -2475,7 +2481,7 @@ Have a look at the `facilities` column. It indicates the availability of various
 
 ---
 
-## separate()
+## `separate()`
 
 `separate()` splits up two or more variables that are clumped together in one column.
 
@@ -2665,7 +2671,7 @@ nested_tp_wo_na$facilities[1]
 
 .panel[.panel-name[`drop_na()` before nesting]
 
-`dplyr`/`tidyr` functions don't work recursive.
+`dplyr`/`tidyr` functions don't work recursively.
 Thus, we apply `drop_na()` before nesting.
 
 
@@ -2846,7 +2852,8 @@ Base `R` already has functions for loading flat files, e.g. `read.csv()`, `read.
 Advantages of the Tidyverse implementations include:
 
 - higher speed
-- ~~characters are not coerced to factors by default (see `stringsAsFactors` argument)~~ (This is not the case anymore since `R` version 4.0)
+- ~~characters are not coerced to factors by default (see `stringsAsFactors` argument)~~  
+(This is not the case anymore since `R` version 4.0)
 - generates tibbles instead of data frames
 
 ---
@@ -3241,7 +3248,7 @@ class: middle, exercise-blue
 
 ## Your turn 8
 
-<div class="countdown" id="timer_6059a86b" style="right:0;bottom:0;" data-warnwhen="0">
+<div class="countdown" id="timer_6075515f" style="right:0;bottom:0;" data-warnwhen="0">
 <code class="countdown-time"><span class="countdown-digits minutes">03</span><span class="countdown-digits colon">:</span><span class="countdown-digits seconds">00</span></code>
 </div>
 
@@ -3362,7 +3369,7 @@ class: middle, exercise-blue
 
 ## Your turn 9
 
-<div class="countdown" id="timer_6059a9d8" style="right:0;bottom:0;" data-warnwhen="0">
+<div class="countdown" id="timer_60755437" style="right:0;bottom:0;" data-warnwhen="0">
 <code class="countdown-time"><span class="countdown-digits minutes">10</span><span class="countdown-digits colon">:</span><span class="countdown-digits seconds">00</span></code>
 </div>
 
@@ -3408,7 +3415,7 @@ exclude: true
 
 class: middle
 
-## Very useful tidyverse packages we did not cover today
+## Very useful tidyverse packages we did not cover
 
 &lt;img src="figures//03-stringr_forcats_lubridate.png" width="80%" /&gt;
 
@@ -3431,11 +3438,11 @@ Hadley Wickham and Garrett Grolemund. ["R for Data Science"](http://r4ds.had.co.
 ##  os       Windows 10 x64              
 ##  system   x86_64, mingw32             
 ##  ui       RTerm                       
-##  language (EN)                        
+##  language EN                          
 ##  collate  English_United States.1252  
 ##  ctype    English_United States.1252  
 ##  tz       Europe/Berlin               
-##  date     2021-03-22
+##  date     2021-04-13
 ```
 
 &lt;div style="font-size:80%;"&gt;

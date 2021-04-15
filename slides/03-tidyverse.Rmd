@@ -262,12 +262,15 @@ knitr::include_graphics(file.path(fig_path, "03-dplyr.png"))
 .pull-left60[
 
 .content-box-gray[
+
+.font90[
 The company behind a travel price aggregator website wants to analyze its booking data to optimize the website's usability and thus improve their customers' travel experience.
 
 The data is organized into two files: 
 
 - `bookings.csv`: hotel bookings
 - `properties.csv`: hotel facilities
+]
 
 ]
 
@@ -281,6 +284,8 @@ knitr::include_graphics(file.path(fig_path, "03-expedia.png"))
 
 ]
 
+.font90[
+
 ```{r load-tidyverse, message = TRUE}
 library(tidyverse)
 ```
@@ -289,6 +294,7 @@ library(tidyverse)
 bookings <- read_csv("../data/bookings.csv")
 ```
 
+]
 
 .font80[
 
@@ -893,7 +899,7 @@ bookings %>%
 
 ]
 
-.panel[.panel-name[Multiple n-valued stats]
+.panel[.panel-name[Multiple one-valued stats]
 
 > What is the total number of bookings, the number of bookings without review score, and the average review score over all bookings?
 
