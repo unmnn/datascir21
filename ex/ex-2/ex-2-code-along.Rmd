@@ -45,7 +45,7 @@ m <- linear_reg() %>%
 m
 glance(m)
 # extract R²
-mr2 <- round(glance(m)$r.squared)
+mr2 <- round(glance(m)$r.squared, 3)
 
 # apply model to 100 equi-distant values along the range of gdpPercap
 test_data <- tibble(gdpPercap = seq(min(g07$gdpPercap), max(g07$gdpPercap), 
