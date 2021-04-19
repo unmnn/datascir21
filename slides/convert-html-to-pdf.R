@@ -3,7 +3,7 @@ library(purrr)
 
 # dir("slides", pattern = "00.*html$") %>%
   # setdiff(c("01-R-Fundamentals.html", "04-rmd-intro.html")) %>%
-c("03-tidyverse.html") %>%
+c("04-rmarkdown.html") %>%
   # Render html files from .Rmd
   # walk(~ paste0("slides/", xfun::sans_ext(.x), ".rmd"), "xaringan::moon_reader") %>%
   # Convert html files to pdf

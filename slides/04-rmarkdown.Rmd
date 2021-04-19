@@ -76,16 +76,19 @@ knitr::include_url("https://www.youtube.com/embed/s3JldKoA0zw?rel=0", height = "
 
 </center>
 
+<https://youtu.be/s3JldKoA0zw>
+
 ???
 
 application scenario: write research paper based on data analysis results
 
-- repetitive manual workflow
+- repetitive and tedious manual workflow
 - raw data is stored in Excel
-- then manually run analysis.R (lin. regression)
+- then manually run data analysis scripts in R
 - make charts
-- copy-paste results (beta-coeffs, charts into your docx)
-- redo whole workflow if there one value in one of the Excel files changes
+- copy-paste results and visualizations into your docx, pptx or latex file
+- maybe you do the analysis already during the data collection phase and you get 2 more observations which forces you to redo all of these steps
+- R Markdown is a suitable tool to automatize such a workflow.
 
 ---
 
@@ -171,7 +174,7 @@ knitr::include_graphics(file.path(fig_path, "04-rmarkdown_sketch.png"))
 
 A .Rmd file contains narrative text in Markdown syntax and (`R`) code.
 The `knitr` package provides functions to execute the code, collect the results (statistics, tables, plots, etc.) and combine them with the Markdown text into a Markdown file (.md). 
-Pandoc, an universal document converter, then converts this Markdown file into the requested output format, e.g., .html, .pdf or .docx.
+Pandoc, a universal document converter, then converts this Markdown file into the requested output format, e.g., .html, .pdf or .docx.
 
 ]
 
