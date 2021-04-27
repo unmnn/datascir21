@@ -49,15 +49,23 @@ knitr::opts_chunk$set(
 )
 ```
 
+```{r}
+con <- dbConnect(RSQLite::SQLite(), "unvotes.sqlite")
+dbWriteTable(con, "iris", iris)
+RSQLite::dbListTables(con)
+tbl(con, "iris")
+```
+
+
 ```{r connect-to-database}
 library(RSQLite)
 # Connect to database
 con <- dbConnect(RSQLite::SQLite(), "unvotes.sqlite")
 # List all tables
-_____
+RSQLite::dbListTables(con)
 
 # We can use tbl() to take a reference to a table in the database:
-unvotes_db <- tbl(_____)
+unvotes_db <- tbl(con, "unvotes")
 # When printing, the table mostly looks like a regular tibble.
 # The main difference is that it's a remote source in a SQLite database.
 unvotes_db
@@ -77,7 +85,10 @@ dbGetQuery(con, 'SELECT * FROM unvotes WHERE country_code = "US" LIMIT 5')
 
 We can even add SQL code chunks to an R Markdown document:
 
-_____
+```{sql connection=con}
+SELECT * FROM unvotes WHERE country_code = "US" LIMIT 5
+```
+
 
 The most important difference between _ordinary data frames_ and _remote database_ queries is that your R code is translated into SQL and executed in the database, not in R. 
 When working with databases, dplyr tries to be as lazy as possible:
@@ -100,10 +111,26 @@ Let's do something more useful with the data.
 
 ## Calculate the percentage of 'yes' votes per country
 
+```{r}
+
+```
+
+
+
+```{r}
+# iris %>%
+#   group_by(Species) %>%
+#   summarize(., avg_sepal_length = mean(Sepal.Length))
+# 
+# x <- group_by(iris, Species)
+# summarize(x, avg_sepal_length = mean(Sepal.Length))
+```
+
+
 ```{r perc-of-yes-per-country}
 unvotes_db %>%
-  group_by(_____) %>%
-  summarize(perc_yes = 100 * _____)
+  group_by(country) %>% #1
+  summarize(perc_yes = 100 * sum(vote == "yes") / n()) #2
 ```
 
 ## Load all tables into memory
@@ -122,14 +149,16 @@ dbDisconnect(con)
 
 We visualize the number of votings per issue category.
 
+forcats
+
 ```{r most-pressing-topics}
 issues %>% 
   # "count" the number of observations for each issue
-  _____(issue) %>% 
+  count(issue) %>% #1
   # put the count variable on the x-axis, put `issue` on the y-axis
-  ggplot(aes(x = _____, y = _____)) +
+  ggplot(aes(x = n, y = fct_reorder(issue, n))) + #2
   # geom_bar() vs. geom_col()?
-  _____() +
+  geom_col() + #3
   labs(
     title = "Resolutions per topic in UN GA votings",
     x = "Number of resolutions",
@@ -150,14 +179,15 @@ Therefore, we need to extract the year of the voting.
 First, we need to convert the date column from `double` to `Date` (`lubridate::as_date`).
 
 ```{r votings-per-year}
+library(lubridate)
 roll_calls %>%
   # convert from double (number of days before 01-01-1970 (Unix epoch)) to `date`
-  mutate(date_clean = lubridate::_____(date)) %>%
+  mutate(date_clean = as_date(date)) %>%
   # extract year component from date
-  mutate(year = lubridate::_____(date_clean)) %>%
+  mutate(year = year(date_clean)) %>%
   # make a bar plot showing the year on the x-axis and the number of votings on the y-axis
-  ggplot(aes(_____)) +
-  geom______() +
+  ggplot(aes(x = year)) + #1
+  geom_bar() + #2
   labs(
     x = "Year",
     y = "Number of votings",
@@ -166,6 +196,8 @@ roll_calls %>%
 ```
 
 ## RQ 3: How did the importance of issues change over time?
+
+stringr
 
 ```{r issue-proportion-over-time-data}
 df <- roll_calls %>%
@@ -185,33 +217,47 @@ df <- roll_calls %>%
   select(rcid, year_disc)
 
 # Join `df` with `issues`; keep all votings from `df`
-df_plot <- _____join(df, issues, by = "rcid") %>%
+df_plot <- left_join(df, issues, by = "rcid") %>% #1
   # some roll calls are not assigned to an issue category
   # make NA values of `issue` explicit, i.e., convert them to an additional factor level
-  mutate(issue = fct_____(issue, na_level = "Uncategorized"))
+  mutate(issue = fct_explicit_na(issue, na_level = "Uncategorized"))
+df_plot
 
 label_pos <- df_plot %>%
   # filter last year in the data
-  filter(year_disc == _____) %>%
+  filter(year_disc == levels(year_disc)[nlevels(year_disc)]) %>% #1
   # count the number of votings per issue
-  count(_____) %>%
+  count(issue) %>% #2
   # compute relative count of votings
-  mutate(perc = _____) %>%
+  mutate(perc = n / sum(n)) %>% #3
   # sort rows by factor order 
   arrange(desc(issue)) %>%
   # position of the label equals the sum of proportions of the issues below plus half of an issue's own proportion
   mutate(pos = cumsum(lag(perc, default = 0)) + 0.5 * perc)
+label_pos
 ```
 
 ```{r issue-proportion-over-time-plot}
 # year bins on x-axis, fill bars by issue
-ggplot(df_plot, aes(_____ = _____, _____ = _____)) +
+ggplot(df_plot, aes(x = year_disc, #1 
+                         fill = issue)) + #2
   geom_bar(position = "fill") +
   colorblindr::scale_fill_OkabeIto() +
   theme(panel.grid = element_blank()) +
   theme(axis.ticks = element_line()) +
   labs(x = "Year", y = NULL,
-       title = "Issue distribution of United Nations votings")
+       title = "Issue distribution of United Nations votings") +
+  geom_text(
+    data = label_pos,
+    aes(x = nlevels(df_plot$year_disc) + 0.75,
+        y = pos,
+        label = str_wrap(issue, 20)),
+    size = 16 / .pt,
+    hjust = 0, lineheight = 0.85, fontface = "italic"
+  ) +
+  guides(fill = FALSE) +
+  scale_x_discrete(expand = c(0,0,0.5,0)) +
+  scale_y_continuous(labels = scales::percent)
 ```
 
 The output should look as follows:
