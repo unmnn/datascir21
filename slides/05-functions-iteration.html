@@ -262,6 +262,8 @@ x[-(3:5)] # all elements but the third to fifth
 
 ---
 
+name: vector-coercion
+
 ## Vector coercion
 
 .content-box-blue[
@@ -343,7 +345,7 @@ lgl_vec
 ```
 
 ```
-##  [1]  TRUE FALSE FALSE  TRUE FALSE  TRUE FALSE FALSE  TRUE FALSE
+##  [1]  TRUE  TRUE FALSE  TRUE FALSE FALSE  TRUE FALSE FALSE  TRUE
 ```
 
 ```r
@@ -351,7 +353,7 @@ sum(lgl_vec) # sum() requires numeric type ---&gt; FALSE -&gt; 0, TRUE -&gt; 1
 ```
 
 ```
-## [1] 4
+## [1] 5
 ```
 
 ```r
@@ -359,7 +361,7 @@ mean(lgl_vec) # mean() requires numeric type ---&gt;  FALSE -&gt; 0, TRUE -&gt; 
 ```
 
 ```
-## [1] 0.4
+## [1] 0.5
 ```
 
 ???
@@ -405,7 +407,7 @@ paste(lgl_vec, collapse = " ")
 
 
 ```
-## [1] "TRUE FALSE FALSE TRUE FALSE TRUE FALSE FALSE TRUE FALSE"
+## [1] "TRUE TRUE FALSE TRUE FALSE FALSE TRUE FALSE FALSE TRUE"
 ```
 
 ???
@@ -1531,7 +1533,7 @@ today() # date
 ```
 
 ```
-## [1] "2021-04-02"
+## [1] "2021-04-27"
 ```
 
 ```r
@@ -1548,7 +1550,7 @@ now() # date-time
 ```
 
 ```
-## [1] "2021-04-02 15:21:09 CEST"
+## [1] "2021-04-27 14:10:29 CEST"
 ```
 
 ```r
@@ -1868,18 +1870,18 @@ glimpse(covid)
 ```
 
 ```
-## Rows: 1,509,819
+## Rows: 1,775,760
 ## Columns: 10
 ## $ row_id        &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,~
-## $ ref_date      &lt;date&gt; 2021-01-27, 2021-01-28, 2021-02-05, 2021-02-16, 2021-02-21, 2021-~
+## $ ref_date      &lt;date&gt; 2020-09-30, 2020-10-29, 2020-11-03, 2020-11-19, 2020-11-18, 2020-~
 ## $ federal_state &lt;fct&gt; Schleswig-Holstein, Schleswig-Holstein, Schleswig-Holstein, Schles~
 ## $ district      &lt;chr&gt; "SK Flensburg", "SK Flensburg", "SK Flensburg", "SK Flensburg", "S~
-## $ age_group     &lt;chr&gt; "A35-A59", "A35-A59", "A35-A59", "A35-A59", "A35-A59", "A35-A59", ~
-## $ sex           &lt;fct&gt; unknown, unknown, unknown, unknown, unknown, unknown, f, f, f, f, ~
-## $ cases         &lt;int&gt; 2, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, ~
+## $ age_group     &lt;chr&gt; "A00-A04", "A00-A04", "A00-A04", "A00-A04", "A00-A04", "A00-A04", ~
+## $ sex           &lt;fct&gt; m, m, m, m, m, m, m, m, m, m, m, m, m, m, m, m, m, m, m, m, m, m, ~
+## $ cases         &lt;int&gt; 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, ~
 ## $ deaths        &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ~
-## $ convalescents &lt;int&gt; 2, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, ~
-## $ data_date     &lt;date&gt; 2021-03-28, 2021-03-28, 2021-03-28, 2021-03-28, 2021-03-28, 2021-~
+## $ convalescents &lt;int&gt; 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, ~
+## $ data_date     &lt;date&gt; 2021-04-27, 2021-04-27, 2021-04-27, 2021-04-27, 2021-04-27, 2021-~
 ```
 
 .font80[Source: [Robert Koch Institute](https://npgeo-corona-npgeo-de.hub.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0)]
@@ -2787,16 +2789,6 @@ tibble(state = sort(unique(covid$federal_state))) %&gt;%
 ```
 
 ```
-## Warning in `==.default`(federal_state, state): longer object length is not a multiple of
-## shorter object length
-```
-
-```
-## Warning in is.na(e1) | is.na(e2): longer object length is not a multiple of shorter object
-## length
-```
-
-```
 ## Error: Problem with `mutate()` input `..1`.
 ## x Input `..1` must be a vector, not a `gg/ggplot` object.
 ## i Input `..1` is `plot_covid_cases_by_age_groups(state)`.
@@ -2970,12 +2962,12 @@ walk2(covid_plots$plot, covid_plots$state, save_plot)
 ##  version  R version 4.0.4 (2021-02-15)
 ##  os       Windows 10 x64              
 ##  system   x86_64, mingw32             
-##  ui       RStudio                     
-##  language (EN)                        
+##  ui       RTerm                       
+##  language EN                          
 ##  collate  English_United States.1252  
 ##  ctype    English_United States.1252  
 ##  tz       Europe/Berlin               
-##  date     2021-04-02
+##  date     2021-04-27
 ```
 
 &lt;div style="font-size:80%;"&gt;
@@ -2993,18 +2985,6 @@ walk2(covid_plots$plot, covid_plots$state, save_plot)
  &lt;/thead&gt;
 &lt;tbody&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; broom &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.7.5 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2021-02-19 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; dials &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.0.9 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2020-09-16 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; dplyr &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; 1.0.5 &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; 2021-03-05 &lt;/td&gt;
@@ -3017,21 +2997,9 @@ walk2(covid_plots$plot, covid_plots$state, save_plot)
    &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; gapminder &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.3.0 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2017-10-31 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; ggplot2 &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; 3.3.3 &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; 2020-12-30 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; infer &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.5.4 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2021-01-13 &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
@@ -3052,30 +3020,6 @@ walk2(covid_plots$plot, covid_plots$state, save_plot)
    &lt;td style="text-align:left;"&gt; 2021-02-26 &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; CRAN (R 4.0.4) &lt;/td&gt;
   &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; modeldata &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.1.0 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2020-10-22 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; palmerpenguins &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.1.0 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2020-07-23 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; parsnip &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.1.5 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2021-01-19 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; purrr &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.3.4 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2020-04-17 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.2) &lt;/td&gt;
-  &lt;/tr&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;
 
@@ -3094,28 +3038,16 @@ walk2(covid_plots$plot, covid_plots$state, save_plot)
  &lt;/thead&gt;
 &lt;tbody&gt;
   &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; purrr &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.3.4 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2020-04-17 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.2) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; readr &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; 1.4.0 &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; 2020-10-05 &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; recipes &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.1.15 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2020-11-11 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; rsample &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.0.9 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2021-02-17 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.4) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; scales &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 1.1.1 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2020-05-11 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.2) &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; stringr &lt;/td&gt;
@@ -3130,12 +3062,6 @@ walk2(covid_plots$plot, covid_plots$state, save_plot)
    &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; tidymodels &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.1.2 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2020-11-22 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; tidyr &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; 1.1.3 &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; 2021-03-03 &lt;/td&gt;
@@ -3146,30 +3072,6 @@ walk2(covid_plots$plot, covid_plots$state, save_plot)
    &lt;td style="text-align:left;"&gt; 1.3.0 &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; 2019-11-21 &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; CRAN (R 4.0.2) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; tune &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.1.2 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2020-11-17 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; workflows &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.2.2 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2021-03-10 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.4) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; xaringanBuilder &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.0.7.9001 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2021-03-22 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; Github (jhelvy/xaringanBuilder) &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; yardstick &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.0.7 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2020-07-13 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
   &lt;/tr&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;

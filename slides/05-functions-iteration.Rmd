@@ -220,6 +220,8 @@ x[-(3:5)] # all elements but the third to fifth
 
 ---
 
+name: vector-coercion
+
 ## Vector coercion
 
 .content-box-blue[
