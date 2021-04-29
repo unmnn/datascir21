@@ -50,6 +50,8 @@ quiz/
 *code-along.html
 *sol.Rmd
 *sol.html
+*sol.md
+*sol_files/
 slides/figures/ss20/
 slides/01-R-Fundamentals*
 RKI_COVID19_RAW.csv
