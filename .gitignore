@@ -56,6 +56,7 @@ RKI_COVID19_RAW.csv
 slides/00-first-tour.md
 00-first-tour-h.md
 ex*.html
+*rsconnect/
 
 
 07-*
@@ -66,7 +67,6 @@ ex/ex-4/ieee.csl
 ex/ex-4/ex-4_files/
 ex/ex-4/ex-4.pdf
 ex/ex-4/ex-4.html
-ex/ex-8/
 drake/
 .drake/
 
