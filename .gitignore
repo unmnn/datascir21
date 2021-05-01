@@ -48,9 +48,7 @@ quiz/
 *code-along.Rmd
 *code-along-after.Rmd
 *code-along.html
-*sol.Rmd
-*sol.html
-*sol.md
+*sol.*
 *sol_files/
 slides/figures/ss20/
 slides/01-R-Fundamentals*
@@ -68,7 +66,6 @@ ex/ex-4/ieee.csl
 ex/ex-4/ex-4_files/
 ex/ex-4/ex-4.pdf
 ex/ex-4/ex-4.html
-ex/ex-7/
 ex/ex-8/
 drake/
 .drake/
