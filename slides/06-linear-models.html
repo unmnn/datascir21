@@ -39,7 +39,7 @@ class: title-slide, center, bottom
 
 ## Bivariate relationships
 
-Example data: **father-son dataset** (1078 Measurements of the height of a father and his son.)
+Example data: **father-son dataset** (1078 measurements of the heights of a father and his son.)
 
 .pull-left70[
 
@@ -134,7 +134,7 @@ ggplot(father_son, aes(x = fheight, y = sheight)) +
   labs(x = "Father's height [cm]", y = "Son's height [cm]")
 ```
 
-&lt;img src="figures/_gen/06/father-son-scatter-1.png" width="425.196850393701" /&gt;
+&lt;img src="figures/_gen/06/father-son-scatter-1.png" width="510.236220472441" /&gt;
 
 ]
 .panel[.panel-name[...boxplots]
@@ -157,7 +157,7 @@ father_son %&gt;%
 
 .pull-right40[
 
-&lt;img src="figures/_gen/06/bla-1.png" width="425.196850393701" /&gt;
+&lt;img src="figures/_gen/06/bla-1.png" width="510.236220472441" /&gt;
 
 ]
 
@@ -229,7 +229,7 @@ ggplot(bdims, aes(hgt, wgt)) +
        caption = "Source: bdims data | R package openintro")
 ```
 
-&lt;img src="figures/_gen/06/bdims-scatter-1.png" width="425.196850393701" /&gt;
+&lt;img src="figures/_gen/06/bdims-scatter-1.png" width="510.236220472441" /&gt;
 
 ]
 
@@ -244,7 +244,7 @@ ggplot(mammals, aes(x = body_wt, y = brain_wt)) +
        caption = "Source: mammals dataset | R package openintro")
 ```
 
-&lt;img src="figures/_gen/06/mammals-scatter-1.png" width="425.196850393701" /&gt;
+&lt;img src="figures/_gen/06/mammals-scatter-1.png" width="510.236220472441" /&gt;
 
 ]
 
@@ -261,7 +261,7 @@ mammals %&gt;%
        caption = "Source: mammals dataset | R package openintro")
 ```
 
-&lt;img src="figures/_gen/06/smaller-mammals-scatter-1.png" width="425.196850393701" /&gt;
+&lt;img src="figures/_gen/06/smaller-mammals-scatter-1.png" width="510.236220472441" /&gt;
 
 ]
 
@@ -278,7 +278,7 @@ ggplot(MASS::Boston, aes(x = lstat, y = medv)) +
        caption = "Source: Boston dataset | R package MASS")
 ```
 
-&lt;img src="figures/_gen/06/boston-scatter-1.png" width="425.196850393701" /&gt;
+&lt;img src="figures/_gen/06/boston-scatter-1.png" width="510.236220472441" /&gt;
 
 ]
 
@@ -297,17 +297,11 @@ ggplot(smoking, aes(x = age, y = amt_weekdays)) +
 ## Warning: Removed 1270 rows containing missing values (geom_point).
 ```
 
-&lt;img src="figures/_gen/06/smoking-scatter-1.png" width="425.196850393701" /&gt;
+&lt;img src="figures/_gen/06/smoking-scatter-1.png" width="510.236220472441" /&gt;
 
 ]
 
 ]
-
-&lt;!-- .content-box-blue[ --&gt;
-
-&lt;!-- **Form? Direction? Strength? Outliers?**   --&gt;
-
-&lt;!-- ] --&gt;
 
 ???
 
@@ -491,7 +485,7 @@ rho
 
 .pull-right[
 
-&lt;img src="figures/_gen/06/father-son-scatter-cor-1.png" width="425.196850393701" /&gt;
+&lt;img src="figures/_gen/06/father-son-scatter-cor-1.png" width="510.236220472441" /&gt;
 
 
 ]
@@ -732,6 +726,9 @@ _Chocolate contains ingredients such as fats or sugar causing acne, so chocolate
 
 ???
 
+- children in families of higher socioeconomic status are more likely to attend elite colleges and 
+- children in families of higher socioeconomic status have, on average, higher earnings as adults, regardless of whether they attended an elite college.
+
 - causation = Kausalität
 - Zusammenhang kann zufällig sein
 - Anwendung für Visual Analytics: Anwendungsexperte überprüft, ob Korrelationen Sinn ergeben
@@ -946,7 +943,36 @@ $$
 
 ---
 
-**TODO: tidymodels overview**
+## Tidymodels
+
+.pull-left[
+
+&lt;img src="figures//06-tidymodels.png" width="100%" /&gt;
+
+]
+
+.pull-right[
+
+&amp;nbsp;
+
+&amp;nbsp;
+
+.content-box-gray[
+
+.font110[
+
+"The **tidymodels** framework is a **collection of packages** for **modeling and machine learning** using **tidyverse** principles."
+
+]
+
+&amp;ndash; &lt;https://www.tidymodels.org/&gt;
+
+]
+
+]
+
+---
+
 
 ## Linear regression in `R`
 
@@ -2209,7 +2235,7 @@ ggplot(augmented_mod, aes(x = fheight, y = sheight)) +
 
 ## High leverage properties
 
-[Leverage](https://en.wikipedia.org/wiki/Leverage_(statistics) (or **hat values**) measures the outlierness of an observation based on the difference to the general distribution of the sample. 
+&lt;a href="https://en.wikipedia.org/wiki/Leverage_(statistics)"&gt;Leverage&lt;/a&gt; (or **hat values**) measures the outlierness of an observation based on the difference to the general distribution of the sample. 
 
 .panelset[
 .panel[.panel-name[Plot]
@@ -2368,6 +2394,8 @@ Advantage: forces some coefficients to be **exactly equal to 0** which means tha
 
 ---
 
+exclude: true
+
 ## Other regression models in `R`
 
 - **Generalized linear models** (`stats::glm()`): allow for discrete responses, e.g. logistic regression
@@ -2411,6 +2439,8 @@ exclude: true
 
 ## Session info
 
+.font70[
+
 
 ```
 ##  setting  value                       
@@ -2418,12 +2448,14 @@ exclude: true
 ##  os       Windows 10 x64              
 ##  system   x86_64, mingw32             
 ##  ui       RTerm                       
-##  language (EN)                        
+##  language EN                          
 ##  collate  English_United States.1252  
 ##  ctype    English_United States.1252  
 ##  tz       Europe/Berlin               
-##  date     2021-03-29
+##  date     2021-05-06
 ```
+
+]
 
 &lt;div style="font-size:80%;"&gt;
 
@@ -2453,9 +2485,9 @@ exclude: true
   &lt;/tr&gt;
   &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; broom &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 0.7.5 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 2021-02-19 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.7.6 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2021-04-05 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.5) &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; cherryblossom &lt;/td&gt;
@@ -2503,7 +2535,7 @@ exclude: true
    &lt;td style="text-align:left;"&gt; modeldata &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; 0.1.0 &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; 2020-10-22 &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.3) &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; CRAN (R 4.0.5) &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; openintro &lt;/td&gt;

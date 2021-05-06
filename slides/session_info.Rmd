@@ -1,9 +1,13 @@
 ## Session info
 
+.font70[
+
 ```{r echo = F}
 session_info <- devtools::session_info()
 session_info$platform
 ```
+
+]
 
 <div style="font-size:80%;">
 

@@ -50,7 +50,8 @@ knitr::opts_chunk$set(
 ```
 
 ```{r}
-con <- dbConnect(RSQLite::SQLite(), "unvotes.sqlite")
+
+con <- RSQLite::dbConnect(RSQLite::SQLite(), "unvotes.sqlite")
 dbWriteTable(con, "iris", iris)
 RSQLite::dbListTables(con)
 tbl(con, "iris")

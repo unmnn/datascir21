@@ -26,6 +26,8 @@ source("global-slide-settings.R", local = knitr::knit_global(), encoding = "UTF-
 library(tidyverse)
 library(tidymodels)
 
+knitr::opts_chunk$set(fig.width = 18/2.54, fig.height = 12/2.54, fig.retina = 4)
+
 theme_set(
   theme_minimal(base_size = 18, base_family = "Fira Sans") +
     theme(panel.grid.minor = element_blank()) +
@@ -53,7 +55,7 @@ attrition <- as_tibble(attrition)
 
 ## Bivariate relationships
 
-Example data: **father-son dataset** (1078 Measurements of the height of a father and his son.)
+Example data: **father-son dataset** (1078 measurements of the heights of a father and his son.)
 
 .pull-left70[
 ```{r load-father-son}
@@ -355,12 +357,6 @@ ggplot(smoking, aes(x = age, y = amt_weekdays)) +
 ]
 
 ]
-
-<!-- .content-box-blue[ -->
-
-<!-- **Form? Direction? Strength? Outliers?**   -->
-
-<!-- ] -->
 
 ???
 
@@ -676,6 +672,9 @@ _Chocolate contains ingredients such as fats or sugar causing acne, so chocolate
 
 ???
 
+- children in families of higher socioeconomic status are more likely to attend elite colleges and 
+- children in families of higher socioeconomic status have, on average, higher earnings as adults, regardless of whether they attended an elite college.
+
 - causation = Kausalität
 - Zusammenhang kann zufällig sein
 - Anwendung für Visual Analytics: Anwendungsexperte überprüft, ob Korrelationen Sinn ergeben
@@ -881,7 +880,38 @@ $$
 
 ---
 
-**TODO: tidymodels overview**
+## Tidymodels
+
+.pull-left[
+
+```{r tidymodels-hex, echo=FALSE, out.width="100%"}
+knitr::include_graphics(file.path(fig_path, "06-tidymodels.png"))
+```
+
+]
+
+.pull-right[
+
+&nbsp;
+
+&nbsp;
+
+.content-box-gray[
+
+.font110[
+
+"The **tidymodels** framework is a **collection of packages** for **modeling and machine learning** using **tidyverse** principles."
+
+]
+
+&ndash; <https://www.tidymodels.org/>
+
+]
+
+]
+
+---
+
 
 ## Linear regression in `R`
 
@@ -1866,7 +1896,7 @@ To obtain **standard residuals**, we divide the residuals by their standard devi
 
 ## High leverage properties
 
-[Leverage](https://en.wikipedia.org/wiki/Leverage_(statistics) (or **hat values**) measures the outlierness of an observation based on the difference to the general distribution of the sample. 
+<a href="https://en.wikipedia.org/wiki/Leverage_(statistics)">Leverage</a> (or **hat values**) measures the outlierness of an observation based on the difference to the general distribution of the sample. 
 
 .panelset[
 .panel[.panel-name[Plot]
@@ -2025,6 +2055,8 @@ Advantage: forces some coefficients to be **exactly equal to 0** which means tha
 
 ---
 
+exclude: true
+
 ## Other regression models in `R`
 
 - **Generalized linear models** (`stats::glm()`): allow for discrete responses, e.g. logistic regression
@@ -2066,6 +2098,7 @@ exclude: true
 ---
 
 ```{r session-info, child="session_info.Rmd"}
+#
 ```
 
 ---
