@@ -2,7 +2,7 @@
 
 .font70[
 
-```{r echo = F}
+```{r session-info-1, echo = F}
 session_info <- devtools::session_info()
 session_info$platform
 ```
@@ -13,7 +13,7 @@ session_info$platform
 
 .pull-left[
 
-```{r echo = F}
+```{r session-info-packages-left, echo = F}
 # packages <- session_info$packages %>% select(package, )
 packages <- dplyr::select(dplyr::filter(session_info$packages, attached), package, version = ondiskversion, date, source)
 num_packages <- nrow(packages)
@@ -33,7 +33,7 @@ if(one_column) {
 
 .pull-right[
 
-```{r echo = F}
+```{r session-info-packages-right, echo = F}
 if(!one_column) {
   knitr::kable(
     dplyr::mutate(packages[(half_num_packages+1):num_packages, ],

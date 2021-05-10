@@ -58,18 +58,11 @@ slides/00-first-tour.md
 ex*.html
 *rsconnect/
 
-
-07-*
-08-*
-09-*
 ex/ex-4/refs.bib
 ex/ex-4/ieee.csl
 ex/ex-4/ex-4_files/
 ex/ex-4/ex-4.pdf
 ex/ex-4/ex-4.html
-drake/
-.drake/
 
 !*ex-2-code-along.Rmd
 !*ex-3-code-along.Rmd
-!*08-ex.Rmd

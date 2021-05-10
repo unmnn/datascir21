@@ -3,15 +3,15 @@ library(purrr)
 
 # dir("slides", pattern = "00.*html$") %>%
   # setdiff(c("01-R-Fundamentals.html", "04-rmd-intro.html")) %>%
-c("06-linear-models.html") %>%
+dir("slides", pattern = "0[7].*html$") %>%
   # Render html files from .Rmd
   # walk(~ paste0("slides/", xfun::sans_ext(.x), ".rmd"), "xaringan::moon_reader") %>%
   # Convert html files to pdf
-  walk(~ xaringanBuilder::build_pdf(
-    paste0("slides/", xfun::sans_ext(.x), ".html"), 
-    paste0("slides/", xfun::sans_ext(.x), ".pdf"),
-    complex_slides = TRUE
-  )) %>%
+  # walk(~ xaringanBuilder::build_pdf(
+  #   paste0("slides/", xfun::sans_ext(.x), ".html"), 
+  #   paste0("slides/", xfun::sans_ext(.x), ".pdf"),
+  #   complex_slides = TRUE
+  # )) %>%
   # Compress PDFs
   # Requires Ghostscript
   # On Windows, set environment variable R_GSCMD

@@ -5,6 +5,23 @@ author: "___"
 output: github_document
 ---
 
+## Task 1
+
+Create an app, which shows a histogram of N random values from a standard normal 
+distribution. 
+The user can specify N via a slider input.
+
+- The minimum value that can be selected is 10.
+- The maximum value that can be selected is 150.
+- The interval between each selectable value on the slider is 10.
+- Random values from a normal distribution can be generated using `rnorm()`.
+
+```{r 08-histogram, out.width = "100%", echo=FALSE}
+knitr::include_graphics("08-histogram.png")
+```
+
+## Task 2
+
 Recreate the Shiny app at <https://rbsenzaehler.shinyapps.io/ex-8/> using the dataset `RKI_COVID19.rds`.
 
 ```{r shiny-app}
