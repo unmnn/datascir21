@@ -57,6 +57,7 @@ slides/00-first-tour.md
 00-first-tour-h.md
 ex*.html
 *rsconnect/
+next-year.md
 
 ex/ex-4/refs.bib
 ex/ex-4/ieee.csl
@@ -66,3 +67,4 @@ ex/ex-4/ex-4.html
 
 !*ex-2-code-along.Rmd
 !*ex-3-code-along.Rmd
+!*ex-3-code-along-sol.Rmd
