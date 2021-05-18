@@ -481,7 +481,7 @@ renderUI()
 
 ## Reactivity
 
-```{r reactivity, echo=FALSE, out.width="100%"}
+```{r reactivity, echo=FALSE, out.width="90%", fig.align='center'}
 knitr::include_graphics(file.path(fig_path, "08-reactivity.png"))
 ```
 
@@ -676,8 +676,8 @@ name: reaktivitaet
 
 ## Prevent re-computations
 
-```{r app-03-isolate, echo=FALSE, out.width="70%", fig.align='center'}
-knitr::include_graphics(file.path(fig_path, "08-app-03-org-2.png"))
+```{r app-03-isolate, echo=FALSE, out.width="85%", fig.align='center'}
+knitr::include_graphics(file.path(fig_path, "08-isolate-example.gif"))
 ```
 
 ---
