@@ -31,7 +31,11 @@ bikeshare <- read_csv("bike-rentals-day.csv")
 
 ```{r factor-season}
 bikeshare <- bikeshare %>%
-  mutate(season = _____))
+  mutate(season = factor(
+    season, 
+    levels = c(2, 3, 4, 1), 
+    labels = c("spring", "summer", "fall", "winter")
+  ))
 bikeshare
 ```
 
@@ -40,7 +44,7 @@ bikeshare
 ```{r factor-holiday-workingday}
 bikeshare <-
   bikeshare %>%
-  mutate(_____)
+  mutate(across(c(holiday, workingday), factor, labels = c("no", "yes")))
 bikeshare
 ```
 
@@ -48,7 +52,7 @@ bikeshare
 
 ```{r factor-year}
 bikeshare <- bikeshare %>%
-  mutate(yr = _____)
+  mutate(yr = factor(yr, labels = c("2011", "2012")))
 bikeshare
 ```
 
@@ -56,7 +60,15 @@ bikeshare
 
 ```{r factor-weathersit}
 bikeshare <- bikeshare %>%
-  mutate(weathersit = _____)
+  mutate(weathersit = factor(
+    weathersit, 
+    levels = 1:4,
+    labels = c(
+      "clear", 
+      "mist", 
+      "light precipitation", 
+      "heavy precipitation"
+    )))
 bikeshare
 ```
 
@@ -65,7 +77,10 @@ Instead of writing over the existing variables, create new ones with concise but
 
 ```{r raw-temp-humidity-windspeed}
 bikeshare <- bikeshare %>%
-  _____
+  mutate(temp_raw = temp * 41) %>%
+  mutate(atemp_raw = atemp * 50) %>%
+  mutate(hum_raw = hum * 100) %>%
+  mutate(windspeed_raw = windspeed * 67)
 bikeshare
 ```
 
@@ -75,7 +90,7 @@ But this is only one way, you might come up with another.
 
 ```{r sanity-check}
 bikeshare %>%
-  _____
+  summarize(all(casual + registered == cnt))
 ```
 
 ## Exploratory data analysis
@@ -85,7 +100,15 @@ Hint: You will need to use one of the variables you created above.
 The `"inferno"` colorscale from the [viridis](https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html) package is used.
 
 ```{r bike-rentals-plot}
-
+ggplot(bikeshare, aes(x = dteday, y = cnt, color = atemp_raw)) +
+  geom_point() +
+  labs(
+    x = "Date", y = "Bike rentals",
+    title = "Bike rentals in Washington, D.C., 2011 and 2012",
+    subtitle = "Warmer temperatures associated with more bike rentals",
+    color = "Feeling\ntemper-\nature (°C)"
+  ) +
+  scale_color_viridis_c(option = "inferno")
 ```
 
 ```{r bike-rentals-plot-output}
@@ -97,7 +120,13 @@ knitr::include_graphics("ex-6-codealong-bike-rentals.png")
 Interpret the plot in context of the data.
 
 ```{r bike-rentals-by-season-plot}
-_____
+ggplot(bikeshare, aes(y = fct_rev(season), x = cnt)) +
+  geom_boxplot(fill = "gray90") +
+  labs(
+    x = "Bike rentals",
+    y = "Season",
+    title = "Bike rentals in Washington, D.C., by season in 2011 and 2012"
+  )
 ```
 
 ## Modelling
@@ -107,6 +136,11 @@ Write the linear model, interpret the slope and the intercept in context of the 
 
 ```{r simple-lin-model-raw-temp}
 library(tidymodels)
+fit <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(formula = cnt ~ temp_raw, data = bikeshare)
+fit %>% tidy()
+fit %>% glance()
 
 ```
 
@@ -116,7 +150,14 @@ Is temperature or feeling temperature a better predictor of bike rentals?
 Explain your reasoning.
 
 ```{r simple-lin-model-raw-feel-temp}
-
+fit <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(formula = cnt ~ atemp_raw, data = bikeshare)
+fit %>% tidy()
+fit %>% glance()
+linear_reg() %>%
+  set_engine("lm") %>%
+  fit(formula = cnt ~ atemp_raw, data = bikeshare)
 ```
 
 11\. Fit a model predicting total daily bike rentals from:
@@ -135,7 +176,11 @@ Explain your reasoning.
 Record adjusted R² of the model.
 
 ```{r multiple-lin-model}
-
+fit <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(formula = cnt ~ season + yr + holiday  + workingday + weathersit + temp_raw + atemp_raw + hum + windspeed + atemp_raw*holiday, data = bikeshare) 
+fit %>% tidy() %>% knitr::kable()
+fit %>% glance()
 ```
 
 12\. Write the linear models for holidays and non-holidays. 

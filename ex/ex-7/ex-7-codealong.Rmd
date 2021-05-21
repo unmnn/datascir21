@@ -35,7 +35,7 @@ knitr::opts_chunk$set(fig.width = 24 / 2.54, fig.height = 18 / 2.54)
 ```
 
 ```{r load-data}
-load("gss16.rda")
+load("gss16.rda") 
 ```
 
 Data frame documentation: <https://rstudio-education.github.io/dsbox/reference/gss16.html>
@@ -52,10 +52,19 @@ Answers to this question are stored in the `harass5` variable in our dataset.
 1\. What are the possible responses to this question and how many respondents chose each of these answers?
 
 ```{r}
-# ... your code goes here
+gss16 %>%
+  count(harass5) %>%
+  arrange(desc(n))
 ```
 
 2\. What percent of the respondents for whom this question is applicable (i.e. excluding "NA"s and "Does not apply"s) have been harassed by their superiors or co-workers at their job?
+
+```{r}
+gss16 %>%
+  filter(harass5 %in% c("No", "Yes")) %>%
+  summarize(mean(harass5 == "Yes"))
+```
+
 
 ## Part 2: Time spent on email
 
@@ -65,23 +74,124 @@ For example, if the response is 2.5 hrs, this would be recorded as `emailhr = 2`
 
 3\. Create a new variable called `email` that combines these two variables to report the number of minutes the respondents spend on email weekly.
 
+```{r email-sol}
+gss16 <- gss16 %>%
+  mutate(email = emailhr * 60 + emailmin)
+gss16
+```
+
 4\. Visualize the distribution of this new variable.
 Find the mean and the median number of minutes respondents spend on email weekly. 
 Is the mean or the median a better measure of the typical among of time Americans spend on email weekly? Why?
 
+```{r}
+ggplot(gss16, aes(x = email)) +
+  geom_histogram(boundary = 0, binwidth = 200, fill = "gray90") +
+  labs(
+    x = "Minutes spennt on emails per week",
+    y = "Frequency"
+  ) +
+  geom_vline(
+    xintercept = median(gss16$email, na.rm = TRUE),
+    linetype = "dashed", size = 1.5
+  ) +
+  geom_vline(
+    xintercept = mean(gss16$email, na.rm = TRUE),
+    linetype = "dotted", size = 1.5
+  ) +
+  annotate(
+    "text", 
+    x = 500, y = 900, label = "Mean", 
+    hjust = 0, size = 16 / .pt
+  ) +
+  annotate(
+    "text", 
+    x = 180, y = 1000, label = "Median", 
+    hjust = 0, size = 16 / .pt
+  )
+```
+
+
 5\. Create another new variable, `snap_insta` that is coded as `"Yes"` if the respondent reported using any of Snapchat (`snapchat`) or Instagram (`instagrm`), and `"No"` if not. 
 If the recorded value was NA for both of these questions, the value in your new variable should also be NA.
 
+```{r}
+gss16 <- gss16 %>%
+  mutate(snap_insta = snapchat == "Yes" | instagrm == "Yes")
+gss16
+```
+
+
 6\. Calculate the percentage of "Yes"'s for `snap_insta` among those who answered the question, i.e., excluding NAs.
+
+```{r}
+gss16 %>%
+  summarize(100 * mean(snap_insta, na.rm = TRUE))
+```
+
+
 
 7\. What are the possible responses to the question "Last week were you working full time, part time, going to school, keeping house, or what?" and how many respondents chose each of these answers? 
 Note that this information is stored in the `wrkstat` variable.
 
+```{r}
+gss16 %>%
+  count(wrkstat) %>%
+  arrange(desc(n))
+
+library(janitor)
+gss16 %>%
+  tabyl(wrkstat) %>%
+  arrange(desc(n))
+```
+
+
 8\. Fit a model predicting `email` (number of minutes per week spent on email) from `educ` (number of years of education), `wrkstat`, and `snap_insta`. 
 Interpret the slopes for each of these variables.
 
+```{r}
+fit <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(email ~ educ + wrkstat + snap_insta, data = gss16)
+fit %>% tidy()
+```
+
+
+
 9\. Create a predicted values vs. residuals plot for this model. 
 Are there any issues with the model? If yes, describe them.
+
+
+```{r}
+augment(fit$fit) %>%
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+```{r}
+fit <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(
+    email ~ educ + wrkstat + snap_insta, 
+    data = gss16 %>%
+      mutate(email = log(email + 1))
+      )
+fit %>% tidy()
+
+```
+```{r}
+(exp(0.193) - 1) * 100
+```
+
+```{r}
+augment(fit$fit) %>%
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+
 
 ## Part 3: Political views and science research
 
@@ -103,9 +213,44 @@ And possible responses to this question are "Extremely liberal", "Liberal", "Sli
 
 10\. In a new variable, recode `advfront` such that "Strongly agree" and "Agree" are mapped to "Yes", and "Disagree" and "Strongly disagree" are mapped to "No". The remaining levels can be left as is.
 
+```{r advfront-sol}
+gss16 <- gss16 %>%
+  mutate(advfront = case_when(
+    advfront %in% c("Strongly agree", "Agree") ~ "Yes",
+    advfront %in% c("Disagree", "Strongly disagree") ~ "No",
+    TRUE ~ advfront
+  ))
+gss16 %>%
+  tabyl(advfront)
+```
+
 11\. In a new variable, recode `polviews` such that "Extremely liberal", "Liberal", and "Slightly liberal" are mapped to "Liberal", and "Slghtly conservative", "Conservative", and "Extrmly conservative" are mapped to "Conservative". The remaining levels can be left as is. Make sure that the levels are in a reasonable order.
 
+```{r polviews-sol}
+gss16 <- gss16 %>%
+  mutate(polviews = case_when(
+    polviews %in% c("Extremely liberal", "Liberal", "Slightly liberal") ~ "Liberal",
+    polviews %in% c("Slghtly conservative", "Conservative", "Extrmly conservative") ~ "Conservative",
+    TRUE ~ polviews
+  ))
+gss16 %>% tabyl(polviews)
+```
+
 12\. Create a visualization that displays the relationship between these two new variables and interpret it.
+
+```{r polviews-advfront-barchart}
+gss16 %>% 
+  filter(across(c(polviews, advfront), ~ !is.na(.x))) %>%
+  mutate(polviews = fct_relevel(polviews, "Liberal", "Moderate")) %>%
+  ggplot(aes(x = fct_rev(advfront), fill = polviews)) + 
+  geom_bar(position = "fill") + # 
+  labs(
+    x = "\"Science research is necessary and should be\nsupported by the federal government\"",
+    y = "Frequency",
+    fill = "Political\nstance",
+    title = "Relationship between position on support for science\nand political stance"
+  )
+```
 
 ## Part 4: Predictive modelling: scientific research
 
@@ -116,21 +261,39 @@ The responses to the question on the GSS about this statement are in the `advfro
 
 13\.  Re-level the `advfront` variable such that it has two levels: `Strongly agree` and "`Agree"` combined into a new level called `agree` and the remaining levels (except `NA`s) combined into "`Not agree"`. Then, re-order the levels in the following order: `"Agree"` and `"Not agree"`. Finally, `count()` how many times each new level appears in the `advfront` variable.
 
+```{r advfront-relevel-sol}
+gss16 <- gss16 %>%
+  mutate(
+    advfront = fct_recode(
+      advfront, 
+      "Not agree" = "Dont know", 
+      "Not agree" = "No", 
+      "Agree" = "Yes"
+    )
+  ) %>%
+  mutate(advfront = factor(advfront, levels = c("Agree", "Not agree")))
+gss16 %>%
+  count(advfront)
+```
+
 14\.  Create a new data frame called `gss16_advfront` that includes the variables `advfront`, `educ`, `polviews`, and `wrkstat`. Then, use the `drop_na()` function to remove rows that contain `NA`s from this new data frame. 
 
 ```{r gss16-advfront, eval=FALSE}
 gss16_advfront <- gss16 %>%
-  select(_____, _____, _____, _____) %>%
+  select(advfront , educ, polviews , wrkstat) %>%
   drop_na()
+gss16_advfront
 ```
 
 15\.  Split the data into training (75%) and testing (25%) data sets. Make sure to set a seed before you do the `initial_split()`. Call the training data `gss16_train` and the testing data `gss16_test`. Sample code is provided below. Use these specific names to make it easier to follow the rest of the instructions.
 
 ```{r holdout-split, eval=FALSE}
-set.seed(_____)
-gss16_split <- _____(gss16_advfront)
-gss16_train <- _____(gss16_split)
-gss16_test  <- _____(gss16_split)
+set.seed(123)
+gss16_split <- initial_split(gss16_advfront)
+gss16_train <- training(gss16_split)
+gss16_test  <- testing(gss16_split)
+gss16_train
+gss16_test
 ```
 
 16\. Create a recipe with the following steps for predicting `advfront` from `polviews`, `wrkstat`, and `educ`. Name this recipe `gss16_rec_1`. (We'll create one more recipe later, that's why we're naming this recipe `_1`.) Sample code is provided below.
@@ -139,24 +302,26 @@ gss16_test  <- _____(gss16_split)
 - `step_dummy()` to create dummy variables for `all_nominal()` variables that are predictors, i.e. `all_predictors()`
 
 ```{r recipe, eval=FALSE}
-gss16_rec_1 <- recipe(___ ~ ___, data = ___) %>%
-  step_other(wrkstat, threshold = ___, other = "Other") %>%
+gss16_rec_1 <- recipe(advfront ~ polviews + wrkstat + educ, data = gss16_advfront) %>%
+  step_other(wrkstat, threshold = 0.1, other = "Other") %>%
   step_dummy(all_nominal(), -all_outcomes())
+gss16_rec_1
 ```
 
 17\. Specify a logistic regression model using `"glm"` as the engine. Name this specification `gss16_spec`. Sample code is provided below.
 
 ```{r glm, eval=FALSE}
-gss16_spec <- _____() %>%
-  set_engine("_____")
+gss16_spec <- logistic_reg() %>%
+  set_engine("glm")
+gss16_spec
 ```
 
 18\. Build a workflow that uses the recipe you defined (`gss16_rec_1`) and the model you specified (`gss16_spec`). Name this workflow `gss16_wflow_1`. Sample code is provided below.
 
 ```{r workflow, eval=FALSE}
 gss16_wflow_1 <- workflow() %>%
-  add_model(___) %>%
-  add_recipe(___)
+  add_model(gss16_spec) %>%
+  add_recipe(gss16_rec_1)
 ```
 
 19\. Perform 5-fold cross validation. 
@@ -168,12 +333,12 @@ More specifically,
 - report the average area under the ROC curve and the accuracy for all cross validation folds `collect_metrics()`
 
 ```{r cv, eval=FALSE}
-set.seed(___)
-gss16_folds <- vfold_cv(___, v = ___)
+set.seed(123)
+gss16_folds <- vfold_cv(gss16_advfront, v = 5)
 gss16_fit_rs_1 <- gss16_wflow_1 %>%
-  fit_resamples(___)
-collect_metrics(___, summarize = FALSE)
-collect_metrics(___)
+  fit_resamples(gss16_folds)
+collect_metrics(gss16_fit_rs_1, summarize = FALSE)
+collect_metrics(gss16_fit_rs_1)
 ```
 
 20\. Now, try a different, simpler model: predict `advfront` from only `polviews` and `educ`. 
@@ -184,9 +349,55 @@ More specifically,
 - perform cross validation, and
 - report the average area under the ROC curve and the accuracy for all cross validation folds `collect_metrics()`.
 
+```{r}
+gss16_rec_2 <- recipe(advfront ~ polviews + educ, data = gss16_advfront) %>%
+  step_dummy(all_nominal(), -all_outcomes())
+
+gss16_wflow_2 <- gss16_wflow_1 %>%
+  update_recipe(gss16_rec_2)
+gss16_fit_rs_2 <- gss16_wflow_2 %>%
+  fit_resamples(gss16_folds)
+collect_metrics(gss16_fit_rs_2, summarize = FALSE)
+collect_metrics(gss16_fit_rs_2)
+```
+
+
 21\. Comment on which model performs better (one including `wrkstat`, model 1, or the one excluding `wrkstat`, model 2) on the training data based on area under the ROC curve.
 
+
+
 22\. Fit both models to the testing data, plot the ROC curves for the predictions for both models, and calculate the areas under the ROC curve.
+
+```{r}
+model_1 <- gss16_wflow_1 %>%
+  fit(data = gss16_train)
+
+p1 <- model_1 %>%
+  predict(new_data = gss16_test, type = "prob") %>%
+  mutate(truth = gss16_test$advfront) %>%
+  roc_curve(truth = truth, .pred_Agree) %>%
+  autoplot() +
+  labs(title = "ROC curve for model_1") +
+  theme(text = element_text(size = 18))
+
+model_2 <- gss16_wflow_2 %>%
+  fit(data = gss16_train)
+
+p2 <- model_2 %>%
+  predict(new_data = gss16_test, type = "prob") %>%
+  mutate(truth = gss16_test$advfront) %>%
+  roc_curve(truth = truth, .pred_Agree) %>%
+  autoplot() +
+  labs(title = "ROC curve for model_2") +
+  theme(text = element_text(size = 18))
+
+
+library(patchwork)
+p1 + ((p2 + p2) / (p1 + p1))
+
+
+```
+
 
 ## Part 5: Confidence intervals using `infer`: harassment at work
 
