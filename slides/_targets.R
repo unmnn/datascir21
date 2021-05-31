@@ -15,5 +15,5 @@ list(
   tar_target(my_data, raw_data %>% mutate(Species = fct_inorder(Species))),
   tar_target(hist, create_plot(my_data)),
   tar_target(fit, lm(Sepal.Width ~ Petal.Width + Species, my_data)),
-  tar_render(report, "targets_files/report.Rmd")
+  tar_render(report, "slides/targets_files/report.Rmd")
 )

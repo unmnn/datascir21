@@ -278,7 +278,7 @@ gss16 %>%
 
 14\.  Create a new data frame called `gss16_advfront` that includes the variables `advfront`, `educ`, `polviews`, and `wrkstat`. Then, use the `drop_na()` function to remove rows that contain `NA`s from this new data frame. 
 
-```{r gss16-advfront, eval=FALSE}
+```{r gss16-advfront}
 gss16_advfront <- gss16 %>%
   select(advfront , educ, polviews , wrkstat) %>%
   drop_na()
@@ -287,7 +287,7 @@ gss16_advfront
 
 15\.  Split the data into training (75%) and testing (25%) data sets. Make sure to set a seed before you do the `initial_split()`. Call the training data `gss16_train` and the testing data `gss16_test`. Sample code is provided below. Use these specific names to make it easier to follow the rest of the instructions.
 
-```{r holdout-split, eval=FALSE}
+```{r holdout-split}
 set.seed(123)
 gss16_split <- initial_split(gss16_advfront)
 gss16_train <- training(gss16_split)
@@ -301,7 +301,7 @@ gss16_test
 - `step_other()` to pool values that occur less than 10% of the time (`threshold = 0.10`) in the `wrkstat` variable into `"Other"`.
 - `step_dummy()` to create dummy variables for `all_nominal()` variables that are predictors, i.e. `all_predictors()`
 
-```{r recipe, eval=FALSE}
+```{r recipe}
 gss16_rec_1 <- recipe(advfront ~ polviews + wrkstat + educ, data = gss16_advfront) %>%
   step_other(wrkstat, threshold = 0.1, other = "Other") %>%
   step_dummy(all_nominal(), -all_outcomes())
@@ -310,7 +310,7 @@ gss16_rec_1
 
 17\. Specify a logistic regression model using `"glm"` as the engine. Name this specification `gss16_spec`. Sample code is provided below.
 
-```{r glm, eval=FALSE}
+```{r glm}
 gss16_spec <- logistic_reg() %>%
   set_engine("glm")
 gss16_spec
@@ -318,7 +318,7 @@ gss16_spec
 
 18\. Build a workflow that uses the recipe you defined (`gss16_rec_1`) and the model you specified (`gss16_spec`). Name this workflow `gss16_wflow_1`. Sample code is provided below.
 
-```{r workflow, eval=FALSE}
+```{r workflow}
 gss16_wflow_1 <- workflow() %>%
   add_model(gss16_spec) %>%
   add_recipe(gss16_rec_1)
@@ -332,7 +332,7 @@ More specifically,
 - `collect_metrics()` and comment on the consistency of metrics across folds (you can get the area under the ROC curve and the accuracy for each fold by setting `summarize = FALSE` in `collect_metrics()`)
 - report the average area under the ROC curve and the accuracy for all cross validation folds `collect_metrics()`
 
-```{r cv, eval=FALSE}
+```{r cv}
 set.seed(123)
 gss16_folds <- vfold_cv(gss16_advfront, v = 5)
 gss16_fit_rs_1 <- gss16_wflow_1 %>%
@@ -399,6 +399,7 @@ p1 + ((p2 + p2) / (p1 + p1))
 ```
 
 
+
 ## Part 5: Confidence intervals using `infer`: harassment at work
 
 > **Statistical inference**: the process of using data analysis to infer properties of an underlying distribution of probability for a population the sample came from.
@@ -451,19 +452,107 @@ Answers to this question are stored in the `harass5` variable in our dataset.
 
 23\. Create a subset of the data that only contains `Yes` and `No` answers for the harassment question. How many responses chose each of these answers?
 
+```{r}
+gss16 %>%
+  count(harass5)
+
+harass <- gss16 %>%
+  filter(harass5 %in% c("Yes", "No"))
+harass %>% count(harass5)
+```
+
+
 24\. Describe how bootstrapping can be used to estimate the proportion of Americans who have been harassed by their superiors or co-workers at their job.
 
+```{r}
+set.seed(123)
+library(infer)
+boot_df <- harass %>%
+  specify(response = harass5, success = "Yes") %>%
+  generate(reps = 10000, type = "bootstrap") %>%
+  calculate(stat = "prop")
+boot_df
+```
+
+
 25\. Calculate a 95% bootstrap confidence interval for the proportion of Americans who have been harassed by their superiors or co-workers at their job. Interpret this interval in context of the data.
+
+```{r}
+ggplot(boot_df, aes(x = stat)) +
+  geom_histogram(bins = 15) +
+  labs(title = "Bootstrap distribution of proportions")
+```
+
+```{r}
+boot_ci <- boot_df %>%
+  summarize(
+    lower = quantile(stat, 0.025),
+    upper = quantile(stat, 0.975)
+  )
+boot_ci
+```
+
+```{r}
+ggplot(boot_df, aes(x = stat)) +
+  geom_histogram(bins = 20, color = "white") +
+  geom_vline(xintercept =  boot_ci$lower, color = "blue", size = 1.25) +
+  geom_vline(xintercept =  boot_ci$upper, color = "blue", size = 1.25) +
+  annotate(
+    "segment", x = boot_ci$lower, xend = boot_ci$upper, y = 200, yend = 200,
+    arrow = arrow(ends = "both", type = "closed"), color = "white", size = 1.25
+  ) +
+  annotate(
+    "label", label = "95% confidence interval",
+    x = boot_ci$lower + 0.5 * (boot_ci$upper - boot_ci$lower),
+    y = 220, vjust = 0, size = 14/.pt
+  ) +
+  labs(title = "Bootstrap distribution of proportions")
+```
+
+
 
 26\. The 95% confidence interval for the proportion of Americans who have been harassed by their superiors or co-workers at their job was calculated as (15.3%, 19.2%). 
 Which of the following is the correct interpretation of this interval?
 
 (a) 95% of the time the proportion of Americans in this sample who have been harassed at their work is between 15.3% and 19.2%. 
 
+```{r}
+harass %>%
+  summarize(mean(harass5 == "Yes"))
+```
+
+
 (b) For any random sample of Americans 95% of the time the proportion of people who have been harassed at work is between 15.3% and 19.2%.
+
+
 
 (c) We are 95% confident that the proportion of people in this dataset who have been harassed at their job is between 15.3% and 19.2%.
 
+
+
+
 (d) We are 95% confident that the proportion of people who have been harassed at their job is between 15.3% and 19.2%.
 
+
+
 27\. Would you expect a 90% confidence interval to be wider or narrower than the interval you calculated above? Explain your reasoning.
+
+```{r 90-ci-sol}
+boot_ci_2 <- boot_df %>%
+  summarize(
+    lower = quantile(stat, 0.05),
+    upper = quantile(stat, 0.95)
+  )
+boot_ci_2
+```
+
+```{r 90-vs-95-ci-sol}
+ggplot(boot_df, aes(x = stat)) +
+  geom_histogram(bins = 20, color = "white") +
+  geom_vline(xintercept =  boot_ci$lower, color = "blue", size = 1.25) +
+  geom_vline(xintercept =  boot_ci$upper, color = "blue", size = 1.25) +
+  geom_vline(xintercept =  boot_ci_2$lower, color = "red", size = 1.25) +
+  geom_vline(xintercept =  boot_ci_2$upper, color = "red", size = 1.25) +
+  labs(title = "Bootstrap distribution of proportions",
+       subtitle = "90% CI: red; 95% CI: blue")
+```
